@@ -1,0 +1,10 @@
+import Nav from "@/app/components/nav";
+
+export default function MainLayout({ children }: LayoutProps<"/">) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Nav />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+    </div>
+  );
+}
