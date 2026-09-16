@@ -15,7 +15,7 @@ const databaseUrl = process.env.DATABASE_URL;
 
 function createDb() {
   if (databaseUrl) {
-    const client = postgres(databaseUrl, { max: 10 });
+    const client = postgres(databaseUrl, { max: 10, prepare: false });
     return drizzlePostgres(client, { schema });
   }
   const client = new PGlite(process.env.PGLITE_PATH || "./.pglite-data");

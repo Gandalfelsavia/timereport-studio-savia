@@ -9,7 +9,7 @@ async function main() {
     const postgres = (await import("postgres")).default;
     const { drizzle } = await import("drizzle-orm/postgres-js");
     const { migrate } = await import("drizzle-orm/postgres-js/migrator");
-    const client = postgres(databaseUrl, { max: 1 });
+    const client = postgres(databaseUrl, { max: 1, prepare: false });
     const db = drizzle(client);
     console.log("Applying migrations to Postgres (DATABASE_URL)...");
     await migrate(db, { migrationsFolder });
