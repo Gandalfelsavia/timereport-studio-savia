@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { getClientReport } from "@/lib/queries";
 import { formatDate } from "@/lib/format";
+import { entryFeeAmount, entryExpenseAmount } from "@/lib/billing";
 
 function csvEscape(value: string): string {
   if (/[",\n;]/.test(value)) {
@@ -26,7 +27,9 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/reports/clie
   if (!report) return new Response("Cliente non trovato", { status: 404 });
 
   const rows: string[] = [];
-  rows.push(["Data", "Collaboratore", "Categoria", "Descrizione", "Ore", "Tipo", "Importo"].join(";"));
+  rows.push(
+    ["Data", "Collaboratore", "Categoria", "Descrizione", "Ore", "Tipo", "Importo", "Costo sostenuto"].join(";")
+  );
 
   const rate = report.client.hourlyRate ?? 0;
   for (const e of report.billableEntries) {
@@ -38,7 +41,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/reports/clie
         csvEscape(e.description),
         e.hours.toString().replace(".", ","),
         "Da fatturare",
-        (e.hours * rate).toFixed(2).replace(".", ","),
+        entryFeeAmount(e, rate).toFixed(2).replace(".", ","),
+        entryExpenseAmount(e) > 0 ? entryExpenseAmount(e).toFixed(2).replace(".", ",") : "",
       ].join(";")
     );
   }
@@ -52,11 +56,24 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/reports/clie
         e.hours.toString().replace(".", ","),
         "Forfait",
         "",
+        "",
       ].join(";")
     );
   }
   rows.push("");
-  rows.push(["", "", "", "", "", "Totale da addebitare", report.amountToInvoice.toFixed(2).replace(".", ",")].join(";"));
+  rows.push(
+    ["", "", "", "", "", "Totale compensi", report.feeAmount.toFixed(2).replace(".", ","), ""].join(";")
+  );
+  rows.push(
+    ["", "", "", "", "", "Totale costi sostenuti", report.expensesAmount.toFixed(2).replace(".", ","), ""].join(
+      ";"
+    )
+  );
+  rows.push(
+    ["", "", "", "", "", "Totale da addebitare", report.amountToInvoice.toFixed(2).replace(".", ","), ""].join(
+      ";"
+    )
+  );
 
   const csv = "﻿" + rows.join("\n");
   const filename = `report_${report.client.name.replace(/[^a-z0-9]+/gi, "_")}_${from}_${to}.csv`;

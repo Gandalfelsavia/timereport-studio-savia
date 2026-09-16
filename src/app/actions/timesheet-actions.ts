@@ -6,16 +6,63 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-const entrySchema = z.object({
-  clientId: z.string().uuid(),
-  categoryId: z.string().uuid({ message: "Seleziona una macrocategoria" }),
-  date: z.string().min(1),
-  description: z.string().min(1, "Descrivi l'attività svolta"),
-  hours: z.coerce.number().positive("Le ore devono essere maggiori di zero").max(24),
-  billable: z.coerce.boolean(),
-});
+const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+const entrySchema = z
+  .object({
+    clientId: z.string().uuid(),
+    categoryId: z.string().uuid({ message: "Seleziona una macrocategoria" }),
+    date: z.string().min(1),
+    description: z.string().min(1, "Descrivi l'attività svolta"),
+    startTime: z.string().regex(timePattern, "Indica l'ora di inizio"),
+    endTime: z.string().regex(timePattern, "Indica l'ora di fine"),
+    billable: z.coerce.boolean(),
+    billingAmount: z.coerce.number().nonnegative().optional().nullable(),
+    expenseAmount: z.coerce.number().nonnegative().optional().nullable(),
+    expenseNote: z.string().optional().nullable(),
+  })
+  .transform((data, ctx) => {
+    const hours = computeHours(data.startTime, data.endTime);
+    if (hours === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "L'ora di fine deve essere successiva all'ora di inizio",
+        path: ["endTime"],
+      });
+      return z.NEVER;
+    }
+    return { ...data, hours };
+  });
+
+// Calcola le ore come differenza tra ora di fine e ora di inizio (stesso giorno),
+// arrotondando al quarto d'ora più vicino.
+function computeHours(startTime: string, endTime: string): number | null {
+  const [startH, startM] = startTime.split(":").map(Number);
+  const [endH, endM] = endTime.split(":").map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+  const diffMinutes = endMinutes - startMinutes;
+  if (diffMinutes <= 0) return null;
+  const hours = Math.round((diffMinutes / 60) * 4) / 4;
+  return hours;
+}
 
 export type TimesheetFormState = { error?: string; success?: boolean };
+
+function readEntryInput(formData: FormData) {
+  return {
+    clientId: formData.get("clientId"),
+    categoryId: formData.get("categoryId"),
+    date: formData.get("date"),
+    description: formData.get("description"),
+    startTime: formData.get("startTime"),
+    endTime: formData.get("endTime"),
+    billable: formData.get("billable") === "on",
+    billingAmount: formData.get("billingAmount") || null,
+    expenseAmount: formData.get("expenseAmount") || null,
+    expenseNote: formData.get("expenseNote") || null,
+  };
+}
 
 export async function createTimeEntry(
   _prevState: TimesheetFormState | undefined,
@@ -24,14 +71,7 @@ export async function createTimeEntry(
   const session = await auth();
   if (!session?.user?.id) return { error: "Non autenticato." };
 
-  const parsed = entrySchema.safeParse({
-    clientId: formData.get("clientId"),
-    categoryId: formData.get("categoryId"),
-    date: formData.get("date"),
-    description: formData.get("description"),
-    hours: formData.get("hours"),
-    billable: formData.get("billable") === "on",
-  });
+  const parsed = entrySchema.safeParse(readEntryInput(formData));
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dati non validi." };
@@ -43,8 +83,13 @@ export async function createTimeEntry(
     categoryId: parsed.data.categoryId,
     date: parsed.data.date,
     description: parsed.data.description,
+    startTime: parsed.data.startTime,
+    endTime: parsed.data.endTime,
     hours: parsed.data.hours,
     billable: parsed.data.billable,
+    billingAmount: parsed.data.billable ? parsed.data.billingAmount ?? null : null,
+    expenseAmount: parsed.data.billable ? parsed.data.expenseAmount ?? null : null,
+    expenseNote: parsed.data.billable ? parsed.data.expenseNote || null : null,
   });
 
   revalidatePath("/timesheet");
@@ -76,14 +121,7 @@ export async function updateTimeEntry(
   if (!session?.user?.id) return { error: "Non autenticato." };
 
   const entryId = formData.get("entryId") as string;
-  const parsed = entrySchema.safeParse({
-    clientId: formData.get("clientId"),
-    categoryId: formData.get("categoryId"),
-    date: formData.get("date"),
-    description: formData.get("description"),
-    hours: formData.get("hours"),
-    billable: formData.get("billable") === "on",
-  });
+  const parsed = entrySchema.safeParse(readEntryInput(formData));
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Dati non validi." };
@@ -98,8 +136,13 @@ export async function updateTimeEntry(
       categoryId: parsed.data.categoryId,
       date: parsed.data.date,
       description: parsed.data.description,
+      startTime: parsed.data.startTime,
+      endTime: parsed.data.endTime,
       hours: parsed.data.hours,
       billable: parsed.data.billable,
+      billingAmount: parsed.data.billable ? parsed.data.billingAmount ?? null : null,
+      expenseAmount: parsed.data.billable ? parsed.data.expenseAmount ?? null : null,
+      expenseNote: parsed.data.billable ? parsed.data.expenseNote || null : null,
       updatedAt: new Date(),
     })
     .where(

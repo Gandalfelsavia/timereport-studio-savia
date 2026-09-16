@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getClientReport } from "@/lib/queries";
 import { formatCurrency, formatDate, formatHours } from "@/lib/format";
+import { entryFeeAmount, entryExpenseAmount } from "@/lib/billing";
 
 function firstDayOfMonth() {
   const d = new Date();
@@ -26,7 +27,16 @@ export default async function ClientReportDetailPage({
   const report = await getClientReport(clientId, from, to);
   if (!report) notFound();
 
-  const { client, billableEntries, forfaitEntries, billableHours, forfaitHours, amountToInvoice } = report;
+  const {
+    client,
+    billableEntries,
+    forfaitEntries,
+    billableHours,
+    forfaitHours,
+    feeAmount,
+    expensesAmount,
+    amountToInvoice,
+  } = report;
 
   return (
     <div className="space-y-6">
@@ -74,6 +84,11 @@ export default async function ClientReportDetailPage({
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
           <p className="text-xs uppercase text-emerald-600">Totale da addebitare</p>
           <p className="mt-1 text-2xl font-semibold text-emerald-700">{formatCurrency(amountToInvoice)}</p>
+          {expensesAmount > 0 && (
+            <p className="mt-1 text-xs text-emerald-600">
+              di cui {formatCurrency(feeAmount)} compensi e {formatCurrency(expensesAmount)} spese sostenute
+            </p>
+          )}
         </div>
       </div>
 
@@ -101,12 +116,17 @@ function EntryTable({
     hours: number;
     userName: string;
     categoryName: string;
+    billingAmount?: number | null;
+    expenseAmount?: number | null;
+    expenseNote?: string | null;
   }[];
   rate?: number | null;
 }) {
   if (entries.length === 0) {
     return <p className="text-sm text-slate-500">Nessuna attività in questo periodo.</p>;
   }
+  const hasExpenses = entries.some((e) => (e.expenseAmount ?? 0) > 0);
+  const showAmount = !!rate || entries.some((e) => e.billingAmount != null);
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="w-full text-sm">
@@ -117,7 +137,8 @@ function EntryTable({
             <th className="px-4 py-2">Categoria</th>
             <th className="px-4 py-2">Descrizione</th>
             <th className="px-4 py-2">Ore</th>
-            {rate ? <th className="px-4 py-2">Importo</th> : null}
+            {showAmount ? <th className="px-4 py-2">Importo</th> : null}
+            {hasExpenses ? <th className="px-4 py-2">Costi sostenuti</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -128,11 +149,14 @@ function EntryTable({
               <td className="px-4 py-2 text-slate-700">{e.categoryName}</td>
               <td className="px-4 py-2 text-slate-700">{e.description}</td>
               <td className="px-4 py-2 text-slate-700">{formatHours(e.hours)}</td>
-              {rate ? (
+              {showAmount ? (
                 <td className="px-4 py-2 font-medium text-slate-900">
-                  {new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
-                    e.hours * rate
-                  )}
+                  {formatCurrency(entryFeeAmount(e, rate ?? 0))}
+                </td>
+              ) : null}
+              {hasExpenses ? (
+                <td className="px-4 py-2 text-amber-700" title={e.expenseNote ?? undefined}>
+                  {(e.expenseAmount ?? 0) > 0 ? formatCurrency(entryExpenseAmount(e)) : "—"}
                 </td>
               ) : null}
             </tr>

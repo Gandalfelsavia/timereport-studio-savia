@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDate, formatHours } from "@/lib/format";
+import { formatDate, formatHours, formatCurrency } from "@/lib/format";
 import { deleteTimeEntry } from "@/app/actions/timesheet-actions";
 import { EditEntryForm } from "./entry-form";
 
@@ -13,8 +13,13 @@ type Entry = {
   categoryId: string;
   categoryName: string;
   description: string;
+  startTime: string | null;
+  endTime: string | null;
   hours: number;
   billable: boolean;
+  billingAmount: number | null;
+  expenseAmount: number | null;
+  expenseNote: string | null;
 };
 
 export default function EntriesTable({
@@ -55,6 +60,11 @@ export default function EntriesTable({
               {entry.categoryName}
             </span>
             <span className="flex-1 text-slate-600">{entry.description}</span>
+            {entry.startTime && entry.endTime && (
+              <span className="shrink-0 text-xs text-slate-400">
+                {entry.startTime.slice(0, 5)}–{entry.endTime.slice(0, 5)}
+              </span>
+            )}
             <span className="shrink-0 text-slate-700">{formatHours(entry.hours)}</span>
             <span
               className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -63,6 +73,19 @@ export default function EntriesTable({
             >
               {entry.billable ? "Da fatturare" : "Forfait"}
             </span>
+            {entry.billable && entry.billingAmount != null && (
+              <span className="shrink-0 text-xs font-medium text-emerald-700">
+                {formatCurrency(entry.billingAmount)}
+              </span>
+            )}
+            {entry.billable && entry.expenseAmount != null && entry.expenseAmount > 0 && (
+              <span
+                className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                title={entry.expenseNote ?? undefined}
+              >
+                + {formatCurrency(entry.expenseAmount)} spese
+              </span>
+            )}
             <div className="ml-auto flex shrink-0 gap-2">
               <button
                 onClick={() => setEditingId(entry.id)}

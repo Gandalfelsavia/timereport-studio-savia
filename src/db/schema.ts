@@ -6,6 +6,7 @@ import {
   boolean,
   numeric,
   date,
+  time,
   timestamp,
   pgEnum,
 } from "drizzle-orm/pg-core";
@@ -63,9 +64,20 @@ export const timeEntries = pgTable("time_entries", {
     .references(() => activityCategories.id, { onDelete: "restrict" }),
   date: date("date", { mode: "string" }).notNull(),
   description: text("description").notNull(),
+  // Orario dell'attività (dalle-alle): usato per calcolare automaticamente "hours".
+  // Nullable per compatibilità con le attività storiche inserite solo in ore.
+  startTime: time("start_time", { precision: 0 }),
+  endTime: time("end_time", { precision: 0 }),
   hours: numeric("hours", { precision: 5, scale: 2, mode: "number" }).notNull(),
   // true = attività da fatturare extra al cliente; false = inclusa nel forfait/non fatturabile
   billable: boolean("billable").notNull().default(true),
+  // Importo fisso da fatturare per questa attività: se impostato, SOSTITUISCE il calcolo
+  // automatico ore × tariffa oraria del cliente. Rilevante solo se billable = true.
+  billingAmount: numeric("billing_amount", { precision: 10, scale: 2, mode: "number" }),
+  // Costo sostenuto (bolli, diritti CCIAA, ecc.) da riaddebitare al cliente insieme
+  // all'attività. Riaddebitato solo se billable = true.
+  expenseAmount: numeric("expense_amount", { precision: 10, scale: 2, mode: "number" }),
+  expenseNote: varchar("expense_note", { length: 255 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -15,6 +15,13 @@
       "when": 1789473478987,
       "tag": "0001_broad_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789569498628,
+      "tag": "0002_certain_master_chief",
+      "breakpoints": true
     }
   ]
 }

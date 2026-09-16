@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createTimeEntry, updateTimeEntry, type TimesheetFormState } from "@/app/actions/timesheet-actions";
 
 type ClientOption = { id: string; name: string };
@@ -18,11 +18,13 @@ export function NewEntryForm({
     undefined
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const [billable, setBillable] = useState(true);
   const today = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (state?.success) {
       formRef.current?.reset();
+      setBillable(true);
     }
   }, [state]);
 
@@ -74,7 +76,7 @@ export function NewEntryForm({
           ))}
         </select>
       </div>
-      <div className="sm:col-span-2">
+      <div className="sm:col-span-3">
         <label className="block text-xs font-medium text-slate-600">Note</label>
         <input
           type="text"
@@ -85,23 +87,86 @@ export function NewEntryForm({
         />
       </div>
       <div className="sm:col-span-1">
-        <label className="block text-xs font-medium text-slate-600">Ore</label>
+        <label className="block text-xs font-medium text-slate-600">Dalle</label>
         <input
-          type="number"
-          name="hours"
-          step="0.25"
-          min="0.25"
-          max="24"
+          type="time"
+          name="startTime"
           required
-          placeholder="1.5"
           className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
         />
       </div>
-      <div className="flex items-end gap-2 sm:col-span-7">
+      <div className="sm:col-span-1">
+        <label className="block text-xs font-medium text-slate-600">Alle</label>
+        <input
+          type="time"
+          name="endTime"
+          required
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+
+      <div className="sm:col-span-7">
         <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="billable" defaultChecked className="h-4 w-4 rounded border-slate-300" />
+          <input
+            type="checkbox"
+            name="billable"
+            checked={billable}
+            onChange={(e) => setBillable(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
           Da fatturare extra (deseleziona se inclusa nel forfait)
         </label>
+      </div>
+
+      {billable && (
+        <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:col-span-7 sm:grid-cols-4">
+          <div className="sm:col-span-1">
+            <label className="block text-xs font-medium text-slate-600">
+              Importo da fatturare (facoltativo)
+            </label>
+            <input
+              type="number"
+              name="billingAmount"
+              step="0.01"
+              min="0"
+              placeholder="Auto: ore × tariffa"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              Se lo compili, sostituisce il calcolo ore × tariffa oraria per questa attività.
+            </p>
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-xs font-medium text-slate-600">
+              Costo sostenuto (facoltativo)
+            </label>
+            <input
+              type="number"
+              name="expenseAmount"
+              step="0.01"
+              min="0"
+              placeholder="0,00"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              Spese vive da riaddebitare (bolli, diritti CCIAA, ecc.).
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-slate-600">
+              Descrizione costo sostenuto
+            </label>
+            <input
+              type="text"
+              name="expenseNote"
+              placeholder="Es. Diritti di segreteria CCIAA"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-end sm:col-span-7">
         <button
           type="submit"
           disabled={pending}
@@ -127,8 +192,13 @@ export function EditEntryForm({
     clientId: string;
     categoryId: string;
     description: string;
+    startTime: string | null;
+    endTime: string | null;
     hours: number;
     billable: boolean;
+    billingAmount: number | null;
+    expenseAmount: number | null;
+    expenseNote: string | null;
   };
   clients: ClientOption[];
   categories: CategoryOption[];
@@ -138,10 +208,16 @@ export function EditEntryForm({
     updateTimeEntry,
     undefined
   );
+  const [billable, setBillable] = useState(entry.billable);
 
   useEffect(() => {
     if (state?.success) onDone();
   }, [state, onDone]);
+
+  // Le attività storiche potrebbero non avere un orario dalle-alle salvato:
+  // in tal caso partiamo da un orario vuoto che l'utente dovrà completare.
+  const startTime = entry.startTime?.slice(0, 5) ?? "";
+  const endTime = entry.endTime?.slice(0, 5) ?? "";
 
   return (
     <form action={formAction} className="grid grid-cols-1 gap-2 rounded-md bg-slate-50 p-3 sm:grid-cols-7">
@@ -182,28 +258,88 @@ export function EditEntryForm({
         name="description"
         defaultValue={entry.description}
         required
-        className="rounded-md border border-slate-300 px-2 py-1.5 text-sm sm:col-span-2"
+        className="rounded-md border border-slate-300 px-2 py-1.5 text-sm sm:col-span-3"
       />
-      <input
-        type="number"
-        name="hours"
-        step="0.25"
-        min="0.25"
-        max="24"
-        defaultValue={entry.hours}
-        required
-        className="rounded-md border border-slate-300 px-2 py-1.5 text-sm sm:col-span-1"
-      />
-      <label className="flex items-center gap-2 text-sm text-slate-700 sm:col-span-5">
+      <div className="sm:col-span-1">
+        <label className="block text-[11px] font-medium text-slate-500">Dalle</label>
         <input
-          type="checkbox"
-          name="billable"
-          defaultChecked={entry.billable}
-          className="h-4 w-4 rounded border-slate-300"
+          type="time"
+          name="startTime"
+          defaultValue={startTime}
+          required
+          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
         />
-        Da fatturare extra
-      </label>
-      <div className="flex gap-2 sm:col-span-2 sm:justify-end">
+      </div>
+      <div className="sm:col-span-1">
+        <label className="block text-[11px] font-medium text-slate-500">Alle</label>
+        <input
+          type="time"
+          name="endTime"
+          defaultValue={endTime}
+          required
+          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+
+      <div className="sm:col-span-7">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            name="billable"
+            checked={billable}
+            onChange={(e) => setBillable(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Da fatturare extra
+        </label>
+      </div>
+
+      {billable && (
+        <div className="grid grid-cols-1 gap-3 rounded-md bg-white p-3 sm:col-span-7 sm:grid-cols-4">
+          <div className="sm:col-span-1">
+            <label className="block text-xs font-medium text-slate-600">
+              Importo da fatturare (facoltativo)
+            </label>
+            <input
+              type="number"
+              name="billingAmount"
+              step="0.01"
+              min="0"
+              defaultValue={entry.billingAmount ?? ""}
+              placeholder="Auto: ore × tariffa"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label className="block text-xs font-medium text-slate-600">
+              Costo sostenuto (facoltativo)
+            </label>
+            <input
+              type="number"
+              name="expenseAmount"
+              step="0.01"
+              min="0"
+              defaultValue={entry.expenseAmount ?? ""}
+              placeholder="0,00"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-slate-600">
+              Descrizione costo sostenuto
+            </label>
+            <input
+              type="text"
+              name="expenseNote"
+              defaultValue={entry.expenseNote ?? ""}
+              placeholder="Es. Diritti di segreteria CCIAA"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 sm:col-span-7 sm:justify-end">
         <button
           type="button"
           onClick={onDone}

@@ -1,5 +1,6 @@
 import { db, clients, timeEntries, users, activityCategories } from "@/db";
 import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { entryFeeAmount, entryExpenseAmount, entryTotalAmount } from "@/lib/billing";
 
 export async function getActiveClients() {
   return db
@@ -50,8 +51,13 @@ export async function getUserEntries(userId: string, from?: string, to?: string)
       id: timeEntries.id,
       date: timeEntries.date,
       description: timeEntries.description,
+      startTime: timeEntries.startTime,
+      endTime: timeEntries.endTime,
       hours: timeEntries.hours,
       billable: timeEntries.billable,
+      billingAmount: timeEntries.billingAmount,
+      expenseAmount: timeEntries.expenseAmount,
+      expenseNote: timeEntries.expenseNote,
       clientId: timeEntries.clientId,
       clientName: clients.name,
       categoryId: timeEntries.categoryId,
@@ -75,6 +81,9 @@ export async function getClientReport(clientId: string, from: string, to: string
       description: timeEntries.description,
       hours: timeEntries.hours,
       billable: timeEntries.billable,
+      billingAmount: timeEntries.billingAmount,
+      expenseAmount: timeEntries.expenseAmount,
+      expenseNote: timeEntries.expenseNote,
       userName: users.name,
       categoryName: activityCategories.name,
     })
@@ -96,7 +105,9 @@ export async function getClientReport(clientId: string, from: string, to: string
   const rate = client.hourlyRate ?? 0;
   const billableHours = billableEntries.reduce((sum, e) => sum + e.hours, 0);
   const forfaitHours = forfaitEntries.reduce((sum, e) => sum + e.hours, 0);
-  const amountToInvoice = billableHours * rate;
+  const feeAmount = billableEntries.reduce((sum, e) => sum + entryFeeAmount(e, rate), 0);
+  const expensesAmount = billableEntries.reduce((sum, e) => sum + entryExpenseAmount(e), 0);
+  const amountToInvoice = feeAmount + expensesAmount;
 
   return {
     client,
@@ -104,6 +115,8 @@ export async function getClientReport(clientId: string, from: string, to: string
     forfaitEntries,
     billableHours,
     forfaitHours,
+    feeAmount,
+    expensesAmount,
     amountToInvoice,
   };
 }
@@ -116,6 +129,8 @@ export async function getAllClientsReportSummary(from: string, to: string) {
       .select({
         hours: timeEntries.hours,
         billable: timeEntries.billable,
+        billingAmount: timeEntries.billingAmount,
+        expenseAmount: timeEntries.expenseAmount,
       })
       .from(timeEntries)
       .where(
@@ -125,14 +140,16 @@ export async function getAllClientsReportSummary(from: string, to: string) {
           lte(timeEntries.date, to)
         )
       );
-    const billableHours = entries.filter((e) => e.billable).reduce((s, e) => s + e.hours, 0);
+    const billableEntries = entries.filter((e) => e.billable);
+    const billableHours = billableEntries.reduce((s, e) => s + e.hours, 0);
     const forfaitHours = entries.filter((e) => !e.billable).reduce((s, e) => s + e.hours, 0);
     const rate = client.hourlyRate ?? 0;
+    const amountToInvoice = billableEntries.reduce((s, e) => s + entryTotalAmount(e, rate), 0);
     results.push({
       client,
       billableHours,
       forfaitHours,
-      amountToInvoice: billableHours * rate,
+      amountToInvoice,
     });
   }
   return results;
@@ -149,6 +166,8 @@ export async function getCollaboratorReport(userId: string, from: string, to: st
       description: timeEntries.description,
       hours: timeEntries.hours,
       billable: timeEntries.billable,
+      billingAmount: timeEntries.billingAmount,
+      expenseAmount: timeEntries.expenseAmount,
       clientId: timeEntries.clientId,
       clientName: clients.name,
       clientRate: clients.hourlyRate,
@@ -171,7 +190,7 @@ export async function getCollaboratorReport(userId: string, from: string, to: st
   const forfaitHours = totalHours - billableHours;
   const revenue = entries
     .filter((e) => e.billable)
-    .reduce((s, e) => s + e.hours * (e.clientRate ?? 0), 0);
+    .reduce((s, e) => s + entryTotalAmount(e, e.clientRate ?? 0), 0);
 
   const byClient = new Map<
     string,
@@ -187,7 +206,7 @@ export async function getCollaboratorReport(userId: string, from: string, to: st
     cur.hours += e.hours;
     if (e.billable) {
       cur.billableHours += e.hours;
-      cur.revenue += e.hours * (e.clientRate ?? 0);
+      cur.revenue += entryTotalAmount(e, e.clientRate ?? 0);
     }
     byClient.set(e.clientId, cur);
   }
