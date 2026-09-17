@@ -109,6 +109,17 @@ export async function getClientReport(clientId: string, from: string, to: string
   const expensesAmount = billableEntries.reduce((sum, e) => sum + entryExpenseAmount(e), 0);
   const amountToInvoice = feeAmount + expensesAmount;
 
+  // Tempo impiegato suddiviso per macrocategoria (per il grafico di riepilogo),
+  // ordinato dalla categoria più consistente alla meno consistente.
+  const categoryHours = new Map<string, number>();
+  for (const e of entries) {
+    categoryHours.set(e.categoryName, (categoryHours.get(e.categoryName) ?? 0) + e.hours);
+  }
+  const categoryBreakdown = Array.from(categoryHours, ([categoryName, hours]) => ({
+    categoryName,
+    hours,
+  })).sort((a, b) => b.hours - a.hours);
+
   return {
     client,
     billableEntries,
@@ -118,31 +129,44 @@ export async function getClientReport(clientId: string, from: string, to: string
     feeAmount,
     expensesAmount,
     amountToInvoice,
+    categoryBreakdown,
   };
 }
 
+// Riepilogo per tutti i clienti nel periodo. Include SOLO i clienti che hanno
+// almeno un'attività registrata nel periodo (i clienti senza movimenti non
+// vengono restituiti). Usa un'unica query per tutte le attività del periodo
+// invece di una query per cliente: con centinaia di clienti, interrogare il
+// database una volta per ciascuno rendeva questa pagina molto lenta.
 export async function getAllClientsReportSummary(from: string, to: string) {
   const allClients = await db.select().from(clients).orderBy(asc(clients.name));
+
+  const entries = await db
+    .select({
+      clientId: timeEntries.clientId,
+      hours: timeEntries.hours,
+      billable: timeEntries.billable,
+      billingAmount: timeEntries.billingAmount,
+      expenseAmount: timeEntries.expenseAmount,
+    })
+    .from(timeEntries)
+    .where(and(gte(timeEntries.date, from), lte(timeEntries.date, to)));
+
+  const byClient = new Map<string, typeof entries>();
+  for (const e of entries) {
+    const list = byClient.get(e.clientId);
+    if (list) list.push(e);
+    else byClient.set(e.clientId, [e]);
+  }
+
   const results = [];
   for (const client of allClients) {
-    const entries = await db
-      .select({
-        hours: timeEntries.hours,
-        billable: timeEntries.billable,
-        billingAmount: timeEntries.billingAmount,
-        expenseAmount: timeEntries.expenseAmount,
-      })
-      .from(timeEntries)
-      .where(
-        and(
-          eq(timeEntries.clientId, client.id),
-          gte(timeEntries.date, from),
-          lte(timeEntries.date, to)
-        )
-      );
-    const billableEntries = entries.filter((e) => e.billable);
+    const clientEntries = byClient.get(client.id);
+    if (!clientEntries || clientEntries.length === 0) continue; // nessun movimento: escluso
+
+    const billableEntries = clientEntries.filter((e) => e.billable);
     const billableHours = billableEntries.reduce((s, e) => s + e.hours, 0);
-    const forfaitHours = entries.filter((e) => !e.billable).reduce((s, e) => s + e.hours, 0);
+    const forfaitHours = clientEntries.filter((e) => !e.billable).reduce((s, e) => s + e.hours, 0);
     const rate = client.hourlyRate ?? 0;
     const amountToInvoice = billableEntries.reduce((s, e) => s + entryTotalAmount(e, rate), 0);
     results.push({

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getClientReport } from "@/lib/queries";
 import { formatCurrency, formatDate, formatHours } from "@/lib/format";
 import { entryFeeAmount, entryExpenseAmount } from "@/lib/billing";
+import { CategoryBreakdownChart } from "./category-chart";
 
 function firstDayOfMonth() {
   const d = new Date();
@@ -36,6 +37,7 @@ export default async function ClientReportDetailPage({
     feeAmount,
     expensesAmount,
     amountToInvoice,
+    categoryBreakdown,
   } = report;
 
   return (
@@ -50,12 +52,20 @@ export default async function ClientReportDetailPage({
             Periodo dal {formatDate(from)} al {formatDate(to)}
           </p>
         </div>
-        <a
-          href={`/api/reports/clients/${clientId}/csv?from=${from}&to=${to}`}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-white"
-        >
-          Esporta CSV
-        </a>
+        <div className="flex shrink-0 gap-2">
+          <a
+            href={`/api/reports/clients/${clientId}/csv?from=${from}&to=${to}`}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-white"
+          >
+            Esporta CSV
+          </a>
+          <a
+            href={`/api/reports/clients/${clientId}/pdf?from=${from}&to=${to}`}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-white"
+          >
+            Esporta PDF
+          </a>
+        </div>
       </div>
 
       <form className="flex items-end gap-2 text-sm" method="get">
@@ -100,6 +110,11 @@ export default async function ClientReportDetailPage({
       <div>
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Attività incluse nel forfait</h2>
         <EntryTable entries={forfaitEntries} />
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="mb-2 text-sm font-semibold text-slate-900">Tempo per macrocategoria</h2>
+        <CategoryBreakdownChart data={categoryBreakdown} />
       </div>
     </div>
   );
