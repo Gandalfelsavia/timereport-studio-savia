@@ -77,8 +77,12 @@ export async function getClientReport(clientId: string, from: string, to: string
   const entries = await db
     .select({
       id: timeEntries.id,
+      clientId: timeEntries.clientId,
+      categoryId: timeEntries.categoryId,
       date: timeEntries.date,
       description: timeEntries.description,
+      startTime: timeEntries.startTime,
+      endTime: timeEntries.endTime,
       hours: timeEntries.hours,
       billable: timeEntries.billable,
       billingAmount: timeEntries.billingAmount,

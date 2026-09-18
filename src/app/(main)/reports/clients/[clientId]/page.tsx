@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClientReport } from "@/lib/queries";
+import { getClientReport, getActiveClients, getActiveCategories } from "@/lib/queries";
 import { formatCurrency, formatDate, formatHours } from "@/lib/format";
-import { entryFeeAmount, entryExpenseAmount } from "@/lib/billing";
 import { CategoryBreakdownChart } from "./category-chart";
+import { ClientReportEntriesTable } from "./entries-table";
 
 function firstDayOfMonth() {
   const d = new Date();
@@ -25,7 +25,11 @@ export default async function ClientReportDetailPage({
   const from = sp.from || firstDayOfMonth();
   const to = sp.to || today();
 
-  const report = await getClientReport(clientId, from, to);
+  const [report, allClients, allCategories] = await Promise.all([
+    getClientReport(clientId, from, to),
+    getActiveClients(),
+    getActiveCategories(),
+  ]);
   if (!report) notFound();
 
   const {
@@ -39,6 +43,20 @@ export default async function ClientReportDetailPage({
     amountToInvoice,
     categoryBreakdown,
   } = report;
+
+  // Se il cliente di questa pagina è stato disattivato nel frattempo, lo
+  // includiamo comunque tra le opzioni del form di modifica: altrimenti la
+  // sua stessa attività non potrebbe più essere corretta.
+  const clientsForEdit = allClients.some((c) => c.id === client.id)
+    ? allClients
+    : [{ id: client.id, name: client.name }, ...allClients];
+
+  // Stessa cautela per le macrocategorie eventualmente disattivate nel frattempo.
+  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name] as const));
+  for (const e of [...billableEntries, ...forfaitEntries]) {
+    if (!categoryMap.has(e.categoryId)) categoryMap.set(e.categoryId, e.categoryName);
+  }
+  const categoriesForEdit = Array.from(categoryMap, ([id, name]) => ({ id, name }));
 
   return (
     <div className="space-y-6">
@@ -104,80 +122,31 @@ export default async function ClientReportDetailPage({
 
       <div>
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Attività da fatturare</h2>
-        <EntryTable entries={billableEntries} rate={client.hourlyRate} />
+        <p className="mb-2 text-xs text-slate-500">
+          Puoi modificare qualsiasi attività, anche caricata da un altro collaboratore, per
+          impostare l&apos;importo da fatturare o il costo sostenuto.
+        </p>
+        <ClientReportEntriesTable
+          entries={billableEntries}
+          clients={clientsForEdit}
+          categories={categoriesForEdit}
+          rate={client.hourlyRate}
+        />
       </div>
 
       <div>
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Attività incluse nel forfait</h2>
-        <EntryTable entries={forfaitEntries} />
+        <ClientReportEntriesTable
+          entries={forfaitEntries}
+          clients={clientsForEdit}
+          categories={categoriesForEdit}
+        />
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="mb-2 text-sm font-semibold text-slate-900">Tempo per macrocategoria</h2>
         <CategoryBreakdownChart data={categoryBreakdown} />
       </div>
-    </div>
-  );
-}
-
-function EntryTable({
-  entries,
-  rate,
-}: {
-  entries: {
-    id: string;
-    date: string;
-    description: string;
-    hours: number;
-    userName: string;
-    categoryName: string;
-    billingAmount?: number | null;
-    expenseAmount?: number | null;
-    expenseNote?: string | null;
-  }[];
-  rate?: number | null;
-}) {
-  if (entries.length === 0) {
-    return <p className="text-sm text-slate-500">Nessuna attività in questo periodo.</p>;
-  }
-  const hasExpenses = entries.some((e) => (e.expenseAmount ?? 0) > 0);
-  const showAmount = !!rate || entries.some((e) => e.billingAmount != null);
-  return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-          <tr>
-            <th className="px-4 py-2">Data</th>
-            <th className="px-4 py-2">Collaboratore</th>
-            <th className="px-4 py-2">Categoria</th>
-            <th className="px-4 py-2">Descrizione</th>
-            <th className="px-4 py-2">Ore</th>
-            {showAmount ? <th className="px-4 py-2">Importo</th> : null}
-            {hasExpenses ? <th className="px-4 py-2">Costi sostenuti</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e) => (
-            <tr key={e.id} className="border-t border-slate-100">
-              <td className="px-4 py-2 text-slate-500">{formatDate(e.date)}</td>
-              <td className="px-4 py-2 text-slate-700">{e.userName}</td>
-              <td className="px-4 py-2 text-slate-700">{e.categoryName}</td>
-              <td className="px-4 py-2 text-slate-700">{e.description}</td>
-              <td className="px-4 py-2 text-slate-700">{formatHours(e.hours)}</td>
-              {showAmount ? (
-                <td className="px-4 py-2 font-medium text-slate-900">
-                  {formatCurrency(entryFeeAmount(e, rate ?? 0))}
-                </td>
-              ) : null}
-              {hasExpenses ? (
-                <td className="px-4 py-2 text-amber-700" title={e.expenseNote ?? undefined}>
-                  {(e.expenseAmount ?? 0) > 0 ? formatCurrency(entryExpenseAmount(e)) : "—"}
-                </td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

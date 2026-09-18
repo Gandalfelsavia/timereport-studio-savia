@@ -49,6 +49,20 @@ function computeHours(startTime: string, endTime: string): number | null {
 
 export type TimesheetFormState = { error?: string; success?: boolean };
 
+// Un'attività registrata influenza più pagine (il proprio timesheet, i report
+// per cliente, per collaboratore e la panoramica generale): rivalidiamole tutte
+// dopo ogni creazione/modifica/eliminazione, così i dati aggiornati compaiono
+// subito ovunque, senza bisogno di ricaricare manualmente la pagina.
+function revalidateTimesheetPaths() {
+  revalidatePath("/timesheet");
+  revalidatePath("/reports/clients");
+  revalidatePath("/reports/clients/[clientId]", "page");
+  revalidatePath("/reports/collaboratori");
+  revalidatePath("/reports/collaboratori/[userId]", "page");
+  revalidatePath("/reports/overview");
+  revalidatePath("/");
+}
+
 function readEntryInput(formData: FormData) {
   return {
     clientId: formData.get("clientId"),
@@ -92,7 +106,7 @@ export async function createTimeEntry(
     expenseNote: parsed.data.billable ? parsed.data.expenseNote || null : null,
   });
 
-  revalidatePath("/timesheet");
+  revalidateTimesheetPaths();
   return { success: true };
 }
 
@@ -110,7 +124,7 @@ export async function deleteTimeEntry(entryId: string) {
         : and(eq(timeEntries.id, entryId), eq(timeEntries.userId, session.user.id))
     );
 
-  revalidatePath("/timesheet");
+  revalidateTimesheetPaths();
 }
 
 export async function updateTimeEntry(
@@ -151,6 +165,6 @@ export async function updateTimeEntry(
         : and(eq(timeEntries.id, entryId), eq(timeEntries.userId, session.user.id))
     );
 
-  revalidatePath("/timesheet");
+  revalidateTimesheetPaths();
   return { success: true };
 }
