@@ -48,6 +48,23 @@ export const clients = pgTable("clients", {
   forfaitNote: varchar("forfait_note", { length: 255 }),
   active: boolean("active").notNull().default(true),
   notes: text("notes"),
+  // Anagrafica estesa (tutti campi facoltativi): dati fiscali e di contatto,
+  // utili in futuro per generare preventivi e lettere d'incarico.
+  address: text("address"),
+  vatNumber: varchar("vat_number", { length: 20 }),
+  taxCode: varchar("tax_code", { length: 20 }),
+  sdiCode: varchar("sdi_code", { length: 10 }),
+  pec: varchar("pec", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  // Legale rappresentante: non tutte le forme cliente ne hanno uno (es. ditte
+  // individuali). Il flag è impostato manualmente da chi compila la scheda.
+  hasLegalRepresentative: boolean("has_legal_representative").notNull().default(false),
+  legalRepFirstName: varchar("legal_rep_first_name", { length: 100 }),
+  legalRepLastName: varchar("legal_rep_last_name", { length: 100 }),
+  legalRepBirthDate: date("legal_rep_birth_date", { mode: "string" }),
+  legalRepBirthPlace: varchar("legal_rep_birth_place", { length: 255 }),
+  legalRepResidence: text("legal_rep_residence"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

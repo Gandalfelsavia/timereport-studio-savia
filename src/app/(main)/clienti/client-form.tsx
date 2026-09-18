@@ -86,6 +86,7 @@ function ClientFields({
   hiddenClientId?: string;
 }) {
   const [billingType, setBillingType] = useState(defaultValues?.billingType ?? "HOURLY");
+  const [hasLegalRep, setHasLegalRep] = useState(defaultValues?.hasLegalRepresentative ?? false);
 
   return (
     <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 sm:grid-cols-6">
@@ -151,6 +152,138 @@ function ClientFields({
           />
         </div>
       )}
+      <div className="sm:col-span-6 border-t border-slate-200 pt-3">
+        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
+          Dati anagrafici e di contatto (facoltativi)
+        </p>
+      </div>
+      <div className="sm:col-span-3">
+        <label className="block text-xs font-medium text-slate-600">Indirizzo</label>
+        <input
+          type="text"
+          name="address"
+          defaultValue={defaultValues?.address ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-1">
+        <label className="block text-xs font-medium text-slate-600">Partita IVA</label>
+        <input
+          type="text"
+          name="vatNumber"
+          defaultValue={defaultValues?.vatNumber ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-1">
+        <label className="block text-xs font-medium text-slate-600">Codice Fiscale</label>
+        <input
+          type="text"
+          name="taxCode"
+          defaultValue={defaultValues?.taxCode ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-1">
+        <label className="block text-xs font-medium text-slate-600">Codice SDI</label>
+        <input
+          type="text"
+          name="sdiCode"
+          defaultValue={defaultValues?.sdiCode ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-slate-600">PEC</label>
+        <input
+          type="email"
+          name="pec"
+          defaultValue={defaultValues?.pec ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-slate-600">Email</label>
+        <input
+          type="email"
+          name="email"
+          defaultValue={defaultValues?.email ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="block text-xs font-medium text-slate-600">Telefono</label>
+        <input
+          type="tel"
+          name="phone"
+          defaultValue={defaultValues?.phone ?? undefined}
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+
+      <div className="sm:col-span-6">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            name="hasLegalRepresentative"
+            checked={hasLegalRep}
+            onChange={(e) => setHasLegalRep(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Il cliente ha un legale rappresentante (non serve, ad es., per le ditte individuali)
+        </label>
+      </div>
+
+      {hasLegalRep && (
+        <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:col-span-6 sm:grid-cols-6">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-slate-600">Nome</label>
+            <input
+              type="text"
+              name="legalRepFirstName"
+              defaultValue={defaultValues?.legalRepFirstName ?? undefined}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-slate-600">Cognome</label>
+            <input
+              type="text"
+              name="legalRepLastName"
+              defaultValue={defaultValues?.legalRepLastName ?? undefined}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-slate-600">Nato il</label>
+            <input
+              type="date"
+              name="legalRepBirthDate"
+              defaultValue={defaultValues?.legalRepBirthDate ?? undefined}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <label className="block text-xs font-medium text-slate-600">Luogo di nascita</label>
+            <input
+              type="text"
+              name="legalRepBirthPlace"
+              defaultValue={defaultValues?.legalRepBirthPlace ?? undefined}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <label className="block text-xs font-medium text-slate-600">Residenza</label>
+            <input
+              type="text"
+              name="legalRepResidence"
+              defaultValue={defaultValues?.legalRepResidence ?? undefined}
+              className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="sm:col-span-6">
         <label className="block text-xs font-medium text-slate-600">Note</label>
         <textarea

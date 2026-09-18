@@ -21,6 +21,20 @@ const clientSchema = z.object({
   forfaitAmount: z.string().optional(),
   forfaitNote: z.string().optional(),
   notes: z.string().optional(),
+  // Anagrafica estesa: tutti i campi seguenti sono facoltativi.
+  address: z.string().optional(),
+  vatNumber: z.string().optional(),
+  taxCode: z.string().optional(),
+  sdiCode: z.string().optional(),
+  pec: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  hasLegalRepresentative: z.coerce.boolean(),
+  legalRepFirstName: z.string().optional(),
+  legalRepLastName: z.string().optional(),
+  legalRepBirthDate: z.string().optional(),
+  legalRepBirthPlace: z.string().optional(),
+  legalRepResidence: z.string().optional(),
 });
 
 export type ClientFormState = { error?: string; success?: boolean };
@@ -44,6 +58,19 @@ export async function createClient(
     forfaitAmount: d.forfaitAmount ? Number(d.forfaitAmount) : null,
     forfaitNote: d.forfaitNote || null,
     notes: d.notes || null,
+    address: d.address || null,
+    vatNumber: d.vatNumber || null,
+    taxCode: d.taxCode || null,
+    sdiCode: d.sdiCode || null,
+    pec: d.pec || null,
+    email: d.email || null,
+    phone: d.phone || null,
+    hasLegalRepresentative: d.hasLegalRepresentative,
+    legalRepFirstName: d.hasLegalRepresentative ? d.legalRepFirstName || null : null,
+    legalRepLastName: d.hasLegalRepresentative ? d.legalRepLastName || null : null,
+    legalRepBirthDate: d.hasLegalRepresentative ? d.legalRepBirthDate || null : null,
+    legalRepBirthPlace: d.hasLegalRepresentative ? d.legalRepBirthPlace || null : null,
+    legalRepResidence: d.hasLegalRepresentative ? d.legalRepResidence || null : null,
   });
 
   revalidatePath("/clienti");
@@ -72,6 +99,19 @@ export async function updateClient(
       forfaitAmount: d.forfaitAmount ? Number(d.forfaitAmount) : null,
       forfaitNote: d.forfaitNote || null,
       notes: d.notes || null,
+      address: d.address || null,
+      vatNumber: d.vatNumber || null,
+      taxCode: d.taxCode || null,
+      sdiCode: d.sdiCode || null,
+      pec: d.pec || null,
+      email: d.email || null,
+      phone: d.phone || null,
+      hasLegalRepresentative: d.hasLegalRepresentative,
+      legalRepFirstName: d.hasLegalRepresentative ? d.legalRepFirstName || null : null,
+      legalRepLastName: d.hasLegalRepresentative ? d.legalRepLastName || null : null,
+      legalRepBirthDate: d.hasLegalRepresentative ? d.legalRepBirthDate || null : null,
+      legalRepBirthPlace: d.hasLegalRepresentative ? d.legalRepBirthPlace || null : null,
+      legalRepResidence: d.hasLegalRepresentative ? d.legalRepResidence || null : null,
     })
     .where(eq(clients.id, clientId));
 
