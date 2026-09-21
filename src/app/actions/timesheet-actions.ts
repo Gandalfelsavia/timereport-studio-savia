@@ -5,6 +5,7 @@ import { db, timeEntries } from "@/db";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { checkboxBoolean } from "@/lib/form-schema";
 
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -16,7 +17,7 @@ const entrySchema = z
     description: z.string().min(1, "Descrivi l'attività svolta"),
     startTime: z.string().regex(timePattern, "Indica l'ora di inizio"),
     endTime: z.string().regex(timePattern, "Indica l'ora di fine"),
-    billable: z.coerce.boolean(),
+    billable: checkboxBoolean(),
     billingAmount: z.coerce.number().nonnegative().optional().nullable(),
     expenseAmount: z.coerce.number().nonnegative().optional().nullable(),
     expenseNote: z.string().optional().nullable(),

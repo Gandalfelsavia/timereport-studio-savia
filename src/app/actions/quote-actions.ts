@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { quoteFamilyTemplates, quoteFamilyPricingMode } from "@/lib/quote-templates";
 import { stringifyDiscountLineIds } from "@/lib/quotes";
+import { checkboxBoolean } from "@/lib/form-schema";
 
 async function requireAdminOrSupervisor() {
   const session = await auth();
@@ -196,7 +197,7 @@ export async function deleteQuoteLine(lineId: string, quoteId: string) {
 
 const discountSchema = z.object({
   quoteId: z.string().uuid(),
-  discountEnabled: z.coerce.boolean(),
+  discountEnabled: checkboxBoolean(),
   discountLabel: z.string().optional(),
   discountKind: z.enum(["PERCENT", "AMOUNT"]).optional(),
   discountValue: z.string().optional(),

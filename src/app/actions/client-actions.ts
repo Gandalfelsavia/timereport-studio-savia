@@ -5,6 +5,7 @@ import { db, clients } from "@/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { checkboxBoolean } from "@/lib/form-schema";
 
 async function requireAdminOrSupervisor() {
   const session = await auth();
@@ -29,7 +30,7 @@ const clientSchema = z.object({
   pec: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
-  hasLegalRepresentative: z.coerce.boolean(),
+  hasLegalRepresentative: checkboxBoolean(),
   legalRepFirstName: z.string().optional(),
   legalRepLastName: z.string().optional(),
   legalRepBirthDate: z.string().optional(),
