@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import authConfig from "./auth.config";
 
-const ADMIN_ONLY_PREFIXES = ["/reports/clients", "/clienti", "/categorie"];
+const ADMIN_ONLY_PREFIXES = ["/reports/clients", "/clienti", "/categorie", "/preventivi"];
 const SUPERVISOR_ONLY_PREFIXES = ["/reports/collaboratori", "/reports/overview", "/utenti"];
 
 const { auth } = NextAuth(authConfig);

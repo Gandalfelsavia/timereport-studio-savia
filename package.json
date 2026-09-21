@@ -5,13 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "npm run db:migrate && npm run db:create-supervisor && npm run db:import-real-data && next build",
+    "vercel-build": "npm run db:migrate && npm run db:create-supervisor && npm run db:import-real-data && npm run db:seed-quotes && next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:import-real-data": "tsx src/db/import-real-data.ts",
+    "db:seed-quotes": "tsx src/db/seed-quotes.ts",
     "db:create-supervisor": "tsx src/db/create-supervisor.ts"
   },
   "dependencies": {

@@ -1,4 +1,15 @@
-import { db, clients, timeEntries, users, activityCategories } from "@/db";
+import {
+  db,
+  clients,
+  timeEntries,
+  users,
+  activityCategories,
+  quoteEntities,
+  quoteEntityStaff,
+  feeScheduleItems,
+  quotes,
+  quoteLines,
+} from "@/db";
 import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { entryFeeAmount, entryExpenseAmount, entryTotalAmount } from "@/lib/billing";
 
@@ -272,4 +283,71 @@ export async function getOverviewReport(from: string, to: string) {
   const totalHours = collaboratorSummaries.reduce((s, c) => s + c.totalHours, 0);
 
   return { collaboratorSummaries, clientSummaries, totalRevenue, totalHours };
+}
+
+// --- Preventivi ---
+
+export async function getActiveQuoteEntities() {
+  return db
+    .select()
+    .from(quoteEntities)
+    .where(eq(quoteEntities.active, true))
+    .orderBy(asc(quoteEntities.name));
+}
+
+export async function getQuoteEntityWithStaff(entityId: string) {
+  const [entity] = await db.select().from(quoteEntities).where(eq(quoteEntities.id, entityId)).limit(1);
+  if (!entity) return null;
+  const staff = await db
+    .select()
+    .from(quoteEntityStaff)
+    .where(eq(quoteEntityStaff.entityId, entityId))
+    .orderBy(asc(quoteEntityStaff.sortOrder));
+  return { entity, staff };
+}
+
+export async function getFeeScheduleItems() {
+  return db
+    .select()
+    .from(feeScheduleItems)
+    .orderBy(asc(feeScheduleItems.category), asc(feeScheduleItems.sortOrder));
+}
+
+export async function getAllQuotes() {
+  return db
+    .select({
+      id: quotes.id,
+      recipientName: quotes.recipientName,
+      family: quotes.family,
+      quoteDate: quotes.quoteDate,
+      pricingMode: quotes.pricingMode,
+      entityName: quoteEntities.name,
+      entityKey: quoteEntities.key,
+      clientId: quotes.clientId,
+      createdAt: quotes.createdAt,
+    })
+    .from(quotes)
+    .innerJoin(quoteEntities, eq(quotes.entityId, quoteEntities.id))
+    .orderBy(desc(quotes.createdAt));
+}
+
+export async function getQuoteWithLines(quoteId: string) {
+  const [quote] = await db.select().from(quotes).where(eq(quotes.id, quoteId)).limit(1);
+  if (!quote) return null;
+
+  const [entity] = await db.select().from(quoteEntities).where(eq(quoteEntities.id, quote.entityId)).limit(1);
+  const staff = entity
+    ? await db
+        .select()
+        .from(quoteEntityStaff)
+        .where(eq(quoteEntityStaff.entityId, entity.id))
+        .orderBy(asc(quoteEntityStaff.sortOrder))
+    : [];
+  const lines = await db
+    .select()
+    .from(quoteLines)
+    .where(eq(quoteLines.quoteId, quoteId))
+    .orderBy(asc(quoteLines.sortOrder));
+
+  return { quote, entity: entity ?? null, staff, lines };
 }

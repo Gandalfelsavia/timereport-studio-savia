@@ -6,6 +6,7 @@ const links = [
   { href: "/", label: "Home", roles: ["EMPLOYEE", "ADMIN", "SUPERVISOR"] },
   { href: "/timesheet", label: "Timesheet", roles: ["EMPLOYEE", "ADMIN", "SUPERVISOR"] },
   { href: "/clienti", label: "Clienti", roles: ["ADMIN", "SUPERVISOR"] },
+  { href: "/preventivi", label: "Preventivi", roles: ["ADMIN", "SUPERVISOR"] },
   { href: "/categorie", label: "Categorie attività", roles: ["ADMIN", "SUPERVISOR"] },
   { href: "/reports/clients", label: "Report clienti", roles: ["ADMIN", "SUPERVISOR"] },
   { href: "/reports/collaboratori", label: "Report collaboratori", roles: ["SUPERVISOR"] },
