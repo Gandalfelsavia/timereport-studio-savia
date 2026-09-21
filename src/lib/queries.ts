@@ -12,6 +12,7 @@ import {
 } from "@/db";
 import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { entryFeeAmount, entryExpenseAmount, entryTotalAmount } from "@/lib/billing";
+import { computeClientMargin, type ForfaitPeriodicity } from "@/lib/profitability";
 
 export async function getActiveClients() {
   return db
@@ -100,6 +101,7 @@ export async function getClientReport(clientId: string, from: string, to: string
       expenseAmount: timeEntries.expenseAmount,
       expenseNote: timeEntries.expenseNote,
       userName: users.name,
+      hourlyCost: users.hourlyCost,
       categoryName: activityCategories.name,
     })
     .from(timeEntries)
@@ -124,6 +126,19 @@ export async function getClientReport(clientId: string, from: string, to: string
   const expensesAmount = billableEntries.reduce((sum, e) => sum + entryExpenseAmount(e), 0);
   const amountToInvoice = feeAmount + expensesAmount;
 
+  // Redditività: ricavo (fatturato + eventuale quota forfait di competenza
+  // del periodo) meno costo del lavoro (ore × costo orario), su TUTTE le
+  // attività del periodo, fatturabili o meno.
+  const margin = computeClientMargin({
+    billedRevenue: amountToInvoice,
+    forfaitAmount: client.forfaitAmount,
+    forfaitPeriodicity: client.forfaitPeriodicity as ForfaitPeriodicity | null,
+    billingType: client.billingType,
+    from,
+    to,
+    laborEntries: entries,
+  });
+
   // Tempo impiegato suddiviso per macrocategoria (per il grafico di riepilogo),
   // ordinato dalla categoria più consistente alla meno consistente.
   const categoryHours = new Map<string, number>();
@@ -145,6 +160,7 @@ export async function getClientReport(clientId: string, from: string, to: string
     expensesAmount,
     amountToInvoice,
     categoryBreakdown,
+    margin,
   };
 }
 
@@ -163,8 +179,10 @@ export async function getAllClientsReportSummary(from: string, to: string) {
       billable: timeEntries.billable,
       billingAmount: timeEntries.billingAmount,
       expenseAmount: timeEntries.expenseAmount,
+      hourlyCost: users.hourlyCost,
     })
     .from(timeEntries)
+    .innerJoin(users, eq(timeEntries.userId, users.id))
     .where(and(gte(timeEntries.date, from), lte(timeEntries.date, to)));
 
   const byClient = new Map<string, typeof entries>();
@@ -184,11 +202,23 @@ export async function getAllClientsReportSummary(from: string, to: string) {
     const forfaitHours = clientEntries.filter((e) => !e.billable).reduce((s, e) => s + e.hours, 0);
     const rate = client.hourlyRate ?? 0;
     const amountToInvoice = billableEntries.reduce((s, e) => s + entryTotalAmount(e, rate), 0);
+
+    const margin = computeClientMargin({
+      billedRevenue: amountToInvoice,
+      forfaitAmount: client.forfaitAmount,
+      forfaitPeriodicity: client.forfaitPeriodicity as ForfaitPeriodicity | null,
+      billingType: client.billingType,
+      from,
+      to,
+      laborEntries: clientEntries,
+    });
+
     results.push({
       client,
       billableHours,
       forfaitHours,
       amountToInvoice,
+      margin,
     });
   }
   return results;

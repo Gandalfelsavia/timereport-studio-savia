@@ -20,6 +20,9 @@ const userSchema = z.object({
   email: z.string().email("Email non valida"),
   role: z.enum(["EMPLOYEE", "ADMIN", "SUPERVISOR"]),
   password: z.string().min(6, "La password deve avere almeno 6 caratteri").optional().or(z.literal("")),
+  // Costo orario pieno per lo studio: usato solo nel report di redditività
+  // per cliente, visibile e modificabile solo dal Supervisore.
+  hourlyCost: z.string().optional(),
 });
 
 export type UserFormState = { error?: string; success?: boolean };
@@ -46,6 +49,7 @@ export async function createUser(
       email: parsed.data.email.toLowerCase().trim(),
       role: parsed.data.role,
       passwordHash,
+      hourlyCost: parsed.data.hourlyCost ? Number(parsed.data.hourlyCost) : null,
     });
   } catch {
     return { error: "Esiste già un utente con questa email." };
@@ -60,6 +64,7 @@ const updateUserSchema = z.object({
   name: z.string().min(1, "Il nome è obbligatorio"),
   email: z.string().email("Email non valida"),
   role: z.enum(["EMPLOYEE", "ADMIN", "SUPERVISOR"]),
+  hourlyCost: z.string().optional(),
 });
 
 export async function updateUser(
@@ -77,7 +82,12 @@ export async function updateUser(
   try {
     await db
       .update(users)
-      .set({ name: d.name, email: d.email.toLowerCase().trim(), role: d.role })
+      .set({
+        name: d.name,
+        email: d.email.toLowerCase().trim(),
+        role: d.role,
+        hourlyCost: d.hourlyCost ? Number(d.hourlyCost) : null,
+      })
       .where(eq(users.id, d.userId));
   } catch {
     return { error: "Esiste già un utente con questa email." };

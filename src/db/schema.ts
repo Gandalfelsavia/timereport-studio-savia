@@ -61,6 +61,14 @@ export const quotePeriodicityEnum = pgEnum("quote_periodicity", [
   "ANNUALE",
 ]);
 
+// Periodicità del forfait di un cliente (usata per calcolare la quota di
+// ricavo che cade nel periodo selezionato nel report di redditività).
+export const forfaitPeriodicityEnum = pgEnum("forfait_periodicity", [
+  "MENSILE",
+  "TRIMESTRALE",
+  "ANNUALE",
+]);
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -68,6 +76,10 @@ export const users = pgTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   role: roleEnum("role").notNull().default("EMPLOYEE"),
   active: boolean("active").notNull().default(true),
+  // Costo orario pieno per lo studio (stipendio/compenso + oneri): usato per
+  // calcolare il costo del lavoro nel report di redditività per cliente.
+  // Nullable perché va inserito manualmente per ciascun collaboratore.
+  hourlyCost: numeric("hourly_cost", { precision: 8, scale: 2, mode: "number" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -87,6 +99,10 @@ export const clients = pgTable("clients", {
   hourlyRate: numeric("hourly_rate", { precision: 8, scale: 2, mode: "number" }),
   // Importo forfettario periodico (informativo, es. mensile/annuo)
   forfaitAmount: numeric("forfait_amount", { precision: 10, scale: 2, mode: "number" }),
+  // Periodicità a cui si riferisce forfaitAmount (es. 500€ "al mese"): usata
+  // per calcolare in automatico la quota di ricavo forfait nel periodo del
+  // report di redditività. Nullable finché non impostata manualmente.
+  forfaitPeriodicity: forfaitPeriodicityEnum("forfait_periodicity"),
   forfaitNote: varchar("forfait_note", { length: 255 }),
   active: boolean("active").notNull().default(true),
   notes: text("notes"),

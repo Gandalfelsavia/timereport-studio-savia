@@ -12,6 +12,15 @@ export function formatHours(value: number): string {
   }).format(value) + " h";
 }
 
+export function formatPercent(value: number): string {
+  return (
+    new Intl.NumberFormat("it-IT", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1,
+    }).format(value) + "%"
+  );
+}
+
 export function formatDate(value: string | Date): string {
   const d = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("it-IT", {

@@ -141,6 +141,23 @@ function ClientFields({
         </div>
       )}
       {(billingType === "FORFAIT" || billingType === "MIXED") && (
+        <div className="sm:col-span-1">
+          <label className="block text-xs font-medium text-slate-600">Periodicità forfait</label>
+          <select
+            name="forfaitPeriodicity"
+            defaultValue={defaultValues?.forfaitPeriodicity ?? "MENSILE"}
+            className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+          >
+            <option value="MENSILE">Mensile</option>
+            <option value="TRIMESTRALE">Trimestrale</option>
+            <option value="ANNUALE">Annuale</option>
+          </select>
+          <p className="mt-1 text-[11px] text-slate-400">
+            Usata per calcolare la quota di ricavo nel report di redditività.
+          </p>
+        </div>
+      )}
+      {(billingType === "FORFAIT" || billingType === "MIXED") && (
         <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-slate-600">Note forfait</label>
           <input

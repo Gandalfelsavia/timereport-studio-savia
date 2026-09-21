@@ -9,7 +9,7 @@ import {
   type UserFormState,
 } from "@/app/actions/user-actions";
 import type { User } from "@/db/schema";
-import { roleLabels } from "@/lib/format";
+import { roleLabels, formatCurrency } from "@/lib/format";
 
 export function NewUserForm() {
   const [state, formAction, pending] = useActionState<UserFormState | undefined, FormData>(
@@ -45,7 +45,7 @@ export function NewUserForm() {
   }
 
   return (
-    <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-5">
+    <form ref={formRef} action={formAction} className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-6">
       <div className="sm:col-span-1">
         <label className="block text-xs font-medium text-slate-600">Nome</label>
         <input name="name" required className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
@@ -63,6 +63,17 @@ export function NewUserForm() {
         </select>
       </div>
       <div className="sm:col-span-1">
+        <label className="block text-xs font-medium text-slate-600">Costo orario (€)</label>
+        <input
+          name="hourlyCost"
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="es. 25.00"
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+      <div className="sm:col-span-1">
         <label className="block text-xs font-medium text-slate-600">Password iniziale</label>
         <input name="password" type="text" required className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" />
       </div>
@@ -74,7 +85,7 @@ export function NewUserForm() {
           {pending ? "…" : "Crea"}
         </button>
       </div>
-      {state?.error && <p className="sm:col-span-5 text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="sm:col-span-6 text-sm text-red-600">{state.error}</p>}
     </form>
   );
 }
@@ -98,6 +109,9 @@ export function UserList({ users }: { users: User[] }) {
               <span className="w-40 shrink-0 font-medium text-slate-800">{u.name}</span>
               <span className="w-56 shrink-0 text-slate-500">{u.email}</span>
               <span className="w-32 shrink-0 text-slate-600">{roleLabels[u.role]}</span>
+              <span className="w-28 shrink-0 text-slate-500">
+                {u.hourlyCost != null ? `${formatCurrency(u.hourlyCost)}/h` : "Costo non impostato"}
+              </span>
               <div className="ml-auto flex shrink-0 gap-2">
                 <button
                   onClick={() => setEditingId(u.id)}
@@ -135,7 +149,7 @@ function EditUserForm({ user, onDone }: { user: User; onDone: () => void }) {
   }, [state, onDone]);
 
   return (
-    <form action={formAction} className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-5">
+    <form action={formAction} className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-6">
       <input type="hidden" name="userId" value={user.id} />
       <div className="sm:col-span-1">
         <label className="block text-xs font-medium text-slate-600">Nome</label>
@@ -168,6 +182,18 @@ function EditUserForm({ user, onDone }: { user: User; onDone: () => void }) {
           <option value="SUPERVISOR">Supervisore</option>
         </select>
       </div>
+      <div className="sm:col-span-1">
+        <label className="block text-xs font-medium text-slate-600">Costo orario (€)</label>
+        <input
+          name="hourlyCost"
+          type="number"
+          step="0.01"
+          min="0"
+          defaultValue={user.hourlyCost ?? undefined}
+          placeholder="es. 25.00"
+          className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </div>
       <div className="flex items-end gap-2 sm:col-span-2">
         <button
           type="button"
@@ -184,7 +210,7 @@ function EditUserForm({ user, onDone }: { user: User; onDone: () => void }) {
           {pending ? "Salvataggio…" : "Salva"}
         </button>
       </div>
-      {state?.error && <p className="sm:col-span-5 text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="sm:col-span-6 text-sm text-red-600">{state.error}</p>}
     </form>
   );
 }

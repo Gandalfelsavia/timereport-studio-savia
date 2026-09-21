@@ -20,6 +20,7 @@ const clientSchema = z.object({
   billingType: z.enum(["HOURLY", "FORFAIT", "MIXED"]),
   hourlyRate: z.string().optional(),
   forfaitAmount: z.string().optional(),
+  forfaitPeriodicity: z.enum(["MENSILE", "TRIMESTRALE", "ANNUALE"]).optional(),
   forfaitNote: z.string().optional(),
   notes: z.string().optional(),
   // Anagrafica estesa: tutti i campi seguenti sono facoltativi.
@@ -57,6 +58,7 @@ export async function createClient(
     billingType: d.billingType,
     hourlyRate: d.hourlyRate ? Number(d.hourlyRate) : null,
     forfaitAmount: d.forfaitAmount ? Number(d.forfaitAmount) : null,
+    forfaitPeriodicity: d.forfaitPeriodicity ?? null,
     forfaitNote: d.forfaitNote || null,
     notes: d.notes || null,
     address: d.address || null,
@@ -98,6 +100,7 @@ export async function updateClient(
       billingType: d.billingType,
       hourlyRate: d.hourlyRate ? Number(d.hourlyRate) : null,
       forfaitAmount: d.forfaitAmount ? Number(d.forfaitAmount) : null,
+      forfaitPeriodicity: d.forfaitPeriodicity ?? null,
       forfaitNote: d.forfaitNote || null,
       notes: d.notes || null,
       address: d.address || null,

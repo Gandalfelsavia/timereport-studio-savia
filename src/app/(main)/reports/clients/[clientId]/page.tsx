@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { getClientReport, getActiveClients, getActiveCategories } from "@/lib/queries";
-import { formatCurrency, formatDate, formatHours } from "@/lib/format";
+import { formatCurrency, formatDate, formatHours, formatPercent } from "@/lib/format";
 import { CategoryBreakdownChart } from "./category-chart";
 import { ClientReportEntriesTable } from "./entries-table";
 
@@ -25,12 +26,17 @@ export default async function ClientReportDetailPage({
   const from = sp.from || firstDayOfMonth();
   const to = sp.to || today();
 
-  const [report, allClients, allCategories] = await Promise.all([
+  const [report, allClients, allCategories, session] = await Promise.all([
     getClientReport(clientId, from, to),
     getActiveClients(),
     getActiveCategories(),
+    auth(),
   ]);
   if (!report) notFound();
+
+  // Il costo del lavoro e il margine sono visibili solo al Supervisore:
+  // rivelano indirettamente il costo orario dei collaboratori.
+  const showMargin = session?.user?.role === "SUPERVISOR";
 
   const {
     client,
@@ -42,6 +48,7 @@ export default async function ClientReportDetailPage({
     expensesAmount,
     amountToInvoice,
     categoryBreakdown,
+    margin,
   } = report;
 
   // Se il cliente di questa pagina è stato disattivato nel frattempo, lo
@@ -100,7 +107,7 @@ export default async function ClientReportDetailPage({
         </button>
       </form>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-3 ${showMargin ? "lg:grid-cols-5" : ""}`}>
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <p className="text-xs uppercase text-slate-400">Ore da fatturare</p>
           <p className="mt-1 text-2xl font-semibold text-slate-900">{formatHours(billableHours)}</p>
@@ -118,6 +125,41 @@ export default async function ClientReportDetailPage({
             </p>
           )}
         </div>
+        {showMargin && (
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <p className="text-xs uppercase text-slate-400">Costo del lavoro</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{formatCurrency(margin.cost)}</p>
+            {margin.hoursWithoutCost > 0 && (
+              <p className="mt-1 text-xs text-amber-600">
+                {formatHours(margin.hoursWithoutCost)} senza costo orario impostato (sottostimato)
+              </p>
+            )}
+          </div>
+        )}
+        {showMargin && (
+          <div
+            className={`rounded-lg border p-4 ${
+              margin.margin >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"
+            }`}
+          >
+            <p className={`text-xs uppercase ${margin.margin >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              Margine
+            </p>
+            <p
+              className={`mt-1 text-2xl font-semibold ${
+                margin.margin >= 0 ? "text-emerald-700" : "text-red-700"
+              }`}
+            >
+              {formatCurrency(margin.margin)}
+            </p>
+            {margin.marginPercent != null && (
+              <p className={`mt-1 text-xs ${margin.margin >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {formatPercent(margin.marginPercent)} sul ricavo ({formatCurrency(margin.revenue)})
+                {margin.forfaitRevenueEstimated && " — include quota forfait stimata"}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div>

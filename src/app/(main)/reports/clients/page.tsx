@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 import { getAllClientsReportSummary } from "@/lib/queries";
-import { formatCurrency, formatHours } from "@/lib/format";
+import { formatCurrency, formatHours, formatPercent } from "@/lib/format";
 
 function firstDayOfMonth() {
   const d = new Date();
@@ -19,8 +20,16 @@ export default async function ClientsReportPage({
   const from = params.from || firstDayOfMonth();
   const to = params.to || today();
 
+  const session = await auth();
+  // Il costo del lavoro e il margine per cliente sono visibili solo al
+  // Supervisore: rivelano indirettamente il costo orario dei collaboratori.
+  const showMargin = session?.user?.role === "SUPERVISOR";
+
   const summaries = await getAllClientsReportSummary(from, to);
   const totalToInvoice = summaries.reduce((s, c) => s + c.amountToInvoice, 0);
+  const totalCost = summaries.reduce((s, c) => s + c.margin.cost, 0);
+  const totalMargin = summaries.reduce((s, c) => s + c.margin.margin, 0);
+  const anyMissingCost = summaries.some((c) => c.margin.hoursWithoutCost > 0);
 
   return (
     <div className="space-y-6">
@@ -45,6 +54,13 @@ export default async function ClientsReportPage({
         </button>
       </form>
 
+      {showMargin && anyMissingCost && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          Alcune attività del periodo sono di collaboratori senza costo orario impostato: il costo e il
+          margine di quei clienti sono sottostimati. Imposta il costo orario in Utenti.
+        </p>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -53,11 +69,13 @@ export default async function ClientsReportPage({
               <th className="px-4 py-2">Ore da fatturare</th>
               <th className="px-4 py-2">Ore forfait</th>
               <th className="px-4 py-2">Da addebitare</th>
+              {showMargin && <th className="px-4 py-2">Costo</th>}
+              {showMargin && <th className="px-4 py-2">Margine</th>}
               <th className="px-4 py-2"></th>
             </tr>
           </thead>
           <tbody>
-            {summaries.map(({ client, billableHours, forfaitHours, amountToInvoice }) => (
+            {summaries.map(({ client, billableHours, forfaitHours, amountToInvoice, margin }) => (
               <tr key={client.id} className="border-t border-slate-100">
                 <td className="px-4 py-2 font-medium text-slate-800">{client.name}</td>
                 <td className="px-4 py-2 text-slate-600">{formatHours(billableHours)}</td>
@@ -65,6 +83,26 @@ export default async function ClientsReportPage({
                 <td className="px-4 py-2 font-medium text-slate-900">
                   {amountToInvoice > 0 ? formatCurrency(amountToInvoice) : "—"}
                 </td>
+                {showMargin && (
+                  <td className="px-4 py-2 text-slate-600">
+                    {formatCurrency(margin.cost)}
+                    {margin.hoursWithoutCost > 0 && (
+                      <span className="ml-1 text-amber-600" title="Alcune ore non hanno un costo orario impostato">
+                        *
+                      </span>
+                    )}
+                  </td>
+                )}
+                {showMargin && (
+                  <td className={`px-4 py-2 font-medium ${margin.margin >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                    {formatCurrency(margin.margin)}
+                    {margin.marginPercent != null && (
+                      <span className="ml-1 text-xs font-normal text-slate-400">
+                        ({formatPercent(margin.marginPercent)})
+                      </span>
+                    )}
+                  </td>
+                )}
                 <td className="px-4 py-2 text-right">
                   <Link
                     href={`/reports/clients/${client.id}?from=${from}&to=${to}`}
@@ -79,14 +117,26 @@ export default async function ClientsReportPage({
           <tfoot>
             <tr className="border-t border-slate-200 bg-slate-50 font-medium">
               <td className="px-4 py-2" colSpan={3}>
-                Totale da fatturare nel periodo
+                Totale periodo
               </td>
               <td className="px-4 py-2">{formatCurrency(totalToInvoice)}</td>
+              {showMargin && <td className="px-4 py-2">{formatCurrency(totalCost)}</td>}
+              {showMargin && (
+                <td className={`px-4 py-2 ${totalMargin >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                  {formatCurrency(totalMargin)}
+                </td>
+              )}
               <td />
             </tr>
           </tfoot>
         </table>
       </div>
+      {showMargin && (
+        <p className="text-xs text-slate-400">
+          Il ricavo dei clienti a forfait è ripartito pro-rata sul periodo selezionato in base alla
+          periodicità impostata in scheda cliente: è una stima gestionale, non un valore di fatturazione.
+        </p>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Client } from "@/db/schema";
 import { billingTypeLabels, formatCurrency } from "@/lib/format";
+import { forfaitPeriodicityLabels } from "@/lib/profitability";
 import { toggleClientActive } from "@/app/actions/client-actions";
 import { EditClientForm } from "./client-form";
 
@@ -27,7 +28,13 @@ export default function ClientList({ clients }: { clients: Client[] }) {
               {client.hourlyRate ? formatCurrency(client.hourlyRate) + "/h" : "—"}
             </span>
             <span className="flex-1 text-slate-600">
-              {client.forfaitAmount ? `Forfait ${formatCurrency(client.forfaitAmount)}` : ""}
+              {client.forfaitAmount
+                ? `Forfait ${formatCurrency(client.forfaitAmount)}${
+                    client.forfaitPeriodicity
+                      ? ` / ${forfaitPeriodicityLabels[client.forfaitPeriodicity].toLowerCase()}`
+                      : " (periodicità non impostata)"
+                  }`
+                : ""}
               {client.forfaitNote ? ` (${client.forfaitNote})` : ""}
             </span>
             <div className="ml-auto flex shrink-0 gap-2">
