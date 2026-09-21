@@ -55,6 +55,38 @@ export async function createUser(
   return { success: true };
 }
 
+const updateUserSchema = z.object({
+  userId: z.string().uuid(),
+  name: z.string().min(1, "Il nome è obbligatorio"),
+  email: z.string().email("Email non valida"),
+  role: z.enum(["EMPLOYEE", "ADMIN", "SUPERVISOR"]),
+});
+
+export async function updateUser(
+  _prevState: UserFormState | undefined,
+  formData: FormData
+): Promise<UserFormState> {
+  await requireSupervisor();
+
+  const parsed = updateUserSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dati non validi." };
+  }
+  const d = parsed.data;
+
+  try {
+    await db
+      .update(users)
+      .set({ name: d.name, email: d.email.toLowerCase().trim(), role: d.role })
+      .where(eq(users.id, d.userId));
+  } catch {
+    return { error: "Esiste già un utente con questa email." };
+  }
+
+  revalidatePath("/utenti");
+  return { success: true };
+}
+
 export async function toggleUserActive(userId: string, active: boolean) {
   await requireSupervisor();
   await db.update(users).set({ active }).where(eq(users.id, userId));
