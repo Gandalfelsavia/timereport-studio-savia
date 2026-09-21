@@ -45,6 +45,12 @@ export default async function QuoteDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <a
+            href={`/api/preventivi/${quote.id}/docx`}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            Genera Word
+          </a>
+          <a
             href={`/api/preventivi/${quote.id}/pdf`}
             target="_blank"
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
