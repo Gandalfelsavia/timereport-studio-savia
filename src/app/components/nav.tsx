@@ -5,6 +5,7 @@ import { roleLabels } from "@/lib/format";
 const links = [
   { href: "/", label: "Home", roles: ["EMPLOYEE", "ADMIN", "SUPERVISOR"] },
   { href: "/timesheet", label: "Timesheet", roles: ["EMPLOYEE", "ADMIN", "SUPERVISOR"] },
+  { href: "/scadenze-fiscali", label: "Scadenze Fiscali", roles: ["EMPLOYEE", "ADMIN", "SUPERVISOR"] },
   { href: "/clienti", label: "Clienti", roles: ["ADMIN", "SUPERVISOR"] },
   { href: "/preventivi", label: "Preventivi", roles: ["ADMIN", "SUPERVISOR"] },
   { href: "/categorie", label: "Categorie attività", roles: ["ADMIN", "SUPERVISOR"] },

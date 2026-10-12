@@ -69,6 +69,75 @@ export const forfaitPeriodicityEnum = pgEnum("forfait_periodicity", [
   "ANNUALE",
 ]);
 
+// --- Scadenze fiscali (scadenzario) ---
+
+// Come si calcola la data di una scadenza:
+// - MONTHLY_DAY: lo stesso giorno di ogni mese (es. il 16: IVA/ritenute).
+// - ANNUAL_DATE: un giorno/mese fisso ogni anno (es. 16 giugno: IMU).
+// - DAYS_AFTER_YEAR_END: N giorni dopo la chiusura dell'esercizio (31/12,
+//   trattandosi di scadenze generiche non legate a un cliente specifico),
+//   es. 180 giorni per il deposito bilancio RUNTS.
+// - MANUAL_YEARLY: non esiste una regola fissa (la data la fissano di anno in
+//   anno circolari/decreti di enti o misure specifiche): la data per ogni
+//   anno va inserita a mano in fiscalDeadlineYearlyValues.
+export const deadlineRuleTypeEnum = pgEnum("deadline_rule_type", [
+  "MONTHLY_DAY",
+  "ANNUAL_DATE",
+  "DAYS_AFTER_YEAR_END",
+  "MANUAL_YEARLY",
+]);
+
+export const deadlineCategoryEnum = pgEnum("deadline_category", [
+  "FISCALE",
+  "CONTRIBUTIVO",
+  "ASSICURATIVO_LAVORO",
+  "DOGANALE",
+  "TERZO_SETTORE",
+  "TRIBUTO_LOCALE",
+]);
+
+export const fiscalDeadlines = pgTable("fiscal_deadlines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  category: deadlineCategoryEnum("category").notNull(),
+  source: varchar("source", { length: 120 }).notNull(),
+  ruleType: deadlineRuleTypeEnum("rule_type").notNull(),
+  // MONTHLY_DAY: solo ruleDay (1-31). ANNUAL_DATE: ruleDay + ruleMonth (1-12).
+  // DAYS_AFTER_YEAR_END: solo ruleDaysAfterYearEnd. MANUAL_YEARLY: nessuno dei tre.
+  ruleDay: numeric("rule_day", { precision: 2, scale: 0, mode: "number" }),
+  ruleMonth: numeric("rule_month", { precision: 2, scale: 0, mode: "number" }),
+  ruleDaysAfterYearEnd: numeric("rule_days_after_year_end", { precision: 4, scale: 0, mode: "number" }),
+  // "Sospensione feriale": per legge, gli adempimenti fiscali (versamenti)
+  // che cadrebbero tra il 1° e il 20 agosto sono prorogati al 20 agosto
+  // (poi soggetto comunque allo spostamento weekend/festivo standard).
+  // Rilevante tipicamente solo per la rata di agosto dell'IVA trimestrale.
+  augustSuspension: boolean("august_suspension").notNull().default(false),
+  // true per le voci la cui regola/data non è certa al 100% dalle fonti usate
+  // in fase di compilazione (es. dedotta per analogia, o normativa specifica
+  // di un singolo anno): mostrate con un avviso distinto nell'interfaccia.
+  needsReview: boolean("needs_review").notNull().default(false),
+  notes: text("notes"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: numeric("sort_order", { precision: 5, scale: 0, mode: "number" }).notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Valori specifici per un anno: obbligatori per le scadenze MANUAL_YEARLY
+// (senza questa riga la scadenza non ha una data per quell'anno ed entra tra
+// gli "avvisi da controllare"), opzionali per le altre come eccezione/rettifica
+// puntuale (es. una norma che per un solo anno sposta una data fissa).
+export const fiscalDeadlineYearlyValues = pgTable("fiscal_deadline_yearly_values", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  deadlineId: uuid("deadline_id")
+    .notNull()
+    .references(() => fiscalDeadlines.id, { onDelete: "cascade" }),
+  year: numeric("year", { precision: 4, scale: 0, mode: "number" }).notNull(),
+  date: date("date", { mode: "string" }).notNull(),
+  note: text("note"),
+  confirmedByUserId: uuid("confirmed_by_user_id").references(() => users.id, { onDelete: "set null" }),
+  confirmedAt: timestamp("confirmed_at").notNull().defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -359,3 +428,23 @@ export type Quote = typeof quotes.$inferSelect;
 export type NewQuote = typeof quotes.$inferInsert;
 export type QuoteLine = typeof quoteLines.$inferSelect;
 export type NewQuoteLine = typeof quoteLines.$inferInsert;
+
+export const fiscalDeadlinesRelations = relations(fiscalDeadlines, ({ many }) => ({
+  yearlyValues: many(fiscalDeadlineYearlyValues),
+}));
+
+export const fiscalDeadlineYearlyValuesRelations = relations(fiscalDeadlineYearlyValues, ({ one }) => ({
+  deadline: one(fiscalDeadlines, {
+    fields: [fiscalDeadlineYearlyValues.deadlineId],
+    references: [fiscalDeadlines.id],
+  }),
+  confirmedBy: one(users, {
+    fields: [fiscalDeadlineYearlyValues.confirmedByUserId],
+    references: [users.id],
+  }),
+}));
+
+export type FiscalDeadline = typeof fiscalDeadlines.$inferSelect;
+export type NewFiscalDeadline = typeof fiscalDeadlines.$inferInsert;
+export type FiscalDeadlineYearlyValue = typeof fiscalDeadlineYearlyValues.$inferSelect;
+export type NewFiscalDeadlineYearlyValue = typeof fiscalDeadlineYearlyValues.$inferInsert;

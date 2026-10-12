@@ -9,10 +9,13 @@ import {
   feeScheduleItems,
   quotes,
   quoteLines,
+  fiscalDeadlines,
+  fiscalDeadlineYearlyValues,
 } from "@/db";
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, inArray } from "drizzle-orm";
 import { entryFeeAmount, entryExpenseAmount, entryTotalAmount } from "@/lib/billing";
 import { computeClientMargin, type ForfaitPeriodicity } from "@/lib/profitability";
+import { computeOccurrences, type DeadlineForDisplay } from "@/lib/fiscal-deadlines";
 
 export async function getActiveClients() {
   return db
@@ -380,4 +383,49 @@ export async function getQuoteWithLines(quoteId: string) {
     .orderBy(asc(quoteLines.sortOrder));
 
   return { quote, entity: entity ?? null, staff, lines };
+}
+
+// --- Scadenze fiscali ---
+
+// Tutte le regole (incluse quelle disattivate), per la sezione di gestione
+// riservata ad admin/supervisore: serve anche per poter riattivare una voce.
+export async function getAllFiscalDeadlineRules() {
+  return db.select().from(fiscalDeadlines).orderBy(asc(fiscalDeadlines.title));
+}
+
+export async function getFiscalDeadlinesForYear(year: number): Promise<DeadlineForDisplay[]> {
+  const deadlines = await db
+    .select()
+    .from(fiscalDeadlines)
+    .where(eq(fiscalDeadlines.active, true))
+    .orderBy(asc(fiscalDeadlines.title));
+
+  const ids = deadlines.map((d) => d.id);
+  const yearlyValues = ids.length
+    ? await db.select().from(fiscalDeadlineYearlyValues).where(inArray(fiscalDeadlineYearlyValues.deadlineId, ids))
+    : [];
+
+  const byDeadline = new Map<string, typeof yearlyValues>();
+  for (const v of yearlyValues) {
+    const list = byDeadline.get(v.deadlineId);
+    if (list) list.push(v);
+    else byDeadline.set(v.deadlineId, [v]);
+  }
+
+  return deadlines.map((deadline) => ({
+    deadline,
+    occurrences: computeOccurrences(deadline, year, byDeadline.get(deadline.id) ?? []),
+  }));
+}
+
+// Voci che per quell'anno richiedono attenzione: MANUAL_YEARLY senza valore
+// impostato, o needsReview=true senza ancora una conferma/override per
+// l'anno richiesto. Usata per l'avviso "da controllare" in cima alla pagina.
+export function deadlinesNeedingAttention(items: DeadlineForDisplay[]) {
+  return items.filter((item) => {
+    const anyMissing = item.occurrences.some((o) => o.isMissing);
+    const anyUnconfirmedReview =
+      item.deadline.needsReview && item.occurrences.every((o) => !o.isOverridden);
+    return anyMissing || anyUnconfirmedReview;
+  });
 }

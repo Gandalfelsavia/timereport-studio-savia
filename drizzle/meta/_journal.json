@@ -43,6 +43,13 @@
       "when": 1789989574389,
       "tag": "0005_dusty_millenium_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791801883417,
+      "tag": "0006_glossy_grim_reaper",
+      "breakpoints": true
     }
   ]
 }
