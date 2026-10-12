@@ -31,6 +31,51 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     needsReview: false,
     notes: "Stessa data del versamento IVA/ritenute.",
   },
+  {
+    title: "Presentazione elenchi riepilogativi Intrastat (cessioni/acquisti/servizi UE)",
+    category: "DOGANALE",
+    source: "Agenzia Dogane e Monopoli",
+    ruleType: "MONTHLY_DAY",
+    ruleDay: 25,
+    needsReview: false,
+    notes:
+      "Periodicità mensile o trimestrale secondo le soglie di volume valutate sugli ultimi 4 trimestri (cessioni/servizi resi: mensile oltre 50.000€, altrimenti trimestrale; per gli acquisti le soglie sono più alte — 2 milioni per i beni, 100.000€ per i servizi — e riguardano meno operatori). Il giorno di scadenza, il 25 del mese successivo al periodo, è lo stesso per mensili e trimestrali.",
+  },
+  {
+    title: "Trasmissione SdI autofatture/integrazioni per acquisti dall'estero (TD17/TD18/TD19)",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate (SdI)",
+    ruleType: "MONTHLY_DAY",
+    ruleDay: 15,
+    needsReview: true,
+    notes:
+      "Termine riferito al mese di RICEZIONE della fattura estera (integrazione per acquisti UE, autofattura per operazioni extra-UE/reverse charge interno), non al mese dell'operazione: entro il 15 del mese successivo a quello di ricevimento. Se la fattura del fornitore UE non arriva entro 2 mesi dall'operazione, l'autofattura va emessa entro il 15 del 3° mese successivo all'operazione. Da verificare: non è certo se l'occorrenza di agosto rientri nella sospensione feriale (1-20 agosto) come i versamenti IVA, oppure segua solo lo spostamento ordinario per weekend/festivi (qui impostato così, in assenza di augustSuspension).",
+  },
+
+  // --- Gennaio ---
+  {
+    title: "Comunicazione dati al Sistema Tessera Sanitaria (spese sanitarie anno precedente)",
+    category: "FISCALE",
+    source: "Sistema Tessera Sanitaria (MEF)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 1,
+    ruleDay: 31,
+    needsReview: false,
+    notes:
+      "Per medici, farmacie e altre strutture/professionisti sanitari, riferita alle spese pagate dai pazienti nell'anno precedente. Dal D.M. MEF 29/10/2025 l'invio è tornato ad essere unico e annuale (non più diviso nelle due comunicazioni semestrali di settembre e gennaio).",
+  },
+  {
+    title: "OSS (regime UE e-commerce) — dichiarazione e versamento IVA — 4° trimestre (anno precedente)",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate (OSS)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 1,
+    ruleDay: 31,
+    skipWeekendShift: true,
+    needsReview: false,
+    notes:
+      "Termine fissato dalla normativa UE sull'IVA e-commerce: a differenza della generalità delle scadenze italiane, NON slitta se cade di sabato, domenica o festivo. Riferito al trimestre ottobre-dicembre dell'anno precedente.",
+  },
 
   // --- Agenzia Dogane e Monopoli: rimborso accise gasolio autotrazione (trimestrale) ---
   {
@@ -157,6 +202,17 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     needsReview: true,
     notes: "Misura della Legge di Bilancio 2026: verificare testo definitivo, eventuali proroghe e se viene ripetuta negli anni successivi.",
   },
+  {
+    title: "OSS (regime UE e-commerce) — dichiarazione e versamento IVA — 1° trimestre",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate (OSS)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 4,
+    ruleDay: 30,
+    skipWeekendShift: true,
+    needsReview: false,
+    notes: "Termine fissato dalla normativa UE: non slitta se cade di sabato, domenica o festivo.",
+  },
 
   // --- Maggio ---
   {
@@ -260,6 +316,17 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     needsReview: false,
     notes: "Per chi non versa entro il 30 giugno.",
   },
+  {
+    title: "OSS (regime UE e-commerce) — dichiarazione e versamento IVA — 2° trimestre",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate (OSS)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 7,
+    ruleDay: 31,
+    skipWeekendShift: true,
+    needsReview: false,
+    notes: "Termine fissato dalla normativa UE: non slitta se cade di sabato, domenica o festivo (né segue la sospensione feriale di agosto, diversamente dall'IVA trimestrale ordinaria).",
+  },
 
   // --- Agosto-settembre ---
   {
@@ -357,6 +424,17 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     notes: "Terza e ultima scadenza CU dell'anno: coincide con Redditi e 770.",
   },
   {
+    title: "OSS (regime UE e-commerce) — dichiarazione e versamento IVA — 3° trimestre",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate (OSS)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 10,
+    ruleDay: 31,
+    skipWeekendShift: true,
+    needsReview: false,
+    notes: "Termine fissato dalla normativa UE: non slitta se cade di sabato, domenica o festivo.",
+  },
+  {
     title: "Versamento IVA trimestrale — 3° trimestre",
     category: "FISCALE",
     source: "Agenzia delle Entrate",
@@ -427,5 +505,16 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     ruleDay: 16,
     needsReview: false,
     notes: "Ultima rata riferita all'anno precedente: scade nei primi mesi dell'anno successivo, non va persa a cavallo d'anno.",
+  },
+  {
+    title: "Versamento IVA forfettaria ASD/SSD in regime L. 398/1991 — 4° trimestre (ott-dic, anno precedente)",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 2,
+    ruleDay: 16,
+    needsReview: false,
+    notes:
+      "Regime speciale per associazioni e società sportive dilettantistiche (ASD/SSD). Non prevedendo la dichiarazione IVA annuale, il saldo del 4° trimestre resta al 16 febbraio (diversamente dai contribuenti trimestrali speciali con dichiarazione annuale, che versano il saldo al 16 marzo). Le altre rate dello stesso regime: 16 maggio (1° trim.), 16/20 agosto (2° trim., sospensione feriale), 16 novembre (3° trim.) — coincidono con le scadenze IVA trimestrale ordinaria già presenti nello scadenzario.",
   },
 ];

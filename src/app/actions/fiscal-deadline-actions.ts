@@ -26,6 +26,7 @@ const ruleFields = {
   ruleMonth: z.string().optional(),
   ruleDaysAfterYearEnd: z.string().optional(),
   augustSuspension: checkboxBoolean(),
+  skipWeekendShift: checkboxBoolean(),
   needsReview: checkboxBoolean(),
   notes: z.string().optional(),
 };
@@ -44,6 +45,7 @@ function toRuleValues(d: z.infer<typeof createSchema>) {
     ruleDaysAfterYearEnd:
       d.ruleType === "DAYS_AFTER_YEAR_END" ? (d.ruleDaysAfterYearEnd ? Number(d.ruleDaysAfterYearEnd) : null) : null,
     augustSuspension: d.augustSuspension,
+    skipWeekendShift: d.skipWeekendShift,
     needsReview: d.needsReview,
     notes: d.notes || null,
   };

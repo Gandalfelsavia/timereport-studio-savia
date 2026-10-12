@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FiscalDeadline } from "@/db/schema";
 import type { DeadlineForDisplay, DeadlineOccurrence } from "@/lib/fiscal-deadlines";
@@ -31,17 +31,45 @@ function dayLabel(iso: string): string {
     .replace(".", "");
 }
 
+// Chiave "YYYY-MM" di un mese, usata per filtrare e confrontare le selezioni.
+function monthKeyFor(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function shortMonthLabel(year: number, month: number): string {
+  const d = new Date(Date.UTC(year, month - 1, 1));
+  const label = new Intl.DateTimeFormat("it-IT", { month: "short", timeZone: "UTC" }).format(d).replace(".", "");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// Di default mostriamo il mese corrente e quello successivo, ma solo quando
+// l'anno visualizzato è l'anno reale in corso: se si naviga su un altro anno
+// (freccette), ha più senso partire mostrando tutti i mesi di quell'anno.
+function computeDefaultMonths(year: number): string[] | "all" {
+  const now = new Date();
+  const realYear = now.getFullYear();
+  if (realYear !== year) return "all";
+  const month = now.getMonth() + 1;
+  const curKey = monthKeyFor(year, month);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextKey = monthKeyFor(nextYear, nextMonth);
+  return [curKey, nextKey];
+}
+
 type Row = { deadline: FiscalDeadline; occurrence: DeadlineOccurrence };
 
 export function ScadenzeFiscaliClient({
   year,
   rows,
+  extendedRows,
   pending,
   canManage,
   allDeadlines,
 }: {
   year: number;
   rows: Row[];
+  extendedRows: Row[];
   pending: DeadlineForDisplay[];
   canManage: boolean;
   allDeadlines: FiscalDeadline[];
@@ -49,9 +77,32 @@ export function ScadenzeFiscaliClient({
   const [showNew, setShowNew] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedMonths, setSelectedMonths] = useState<string[] | "all">(() => computeDefaultMonths(year));
+
+  // Se si cambia anno con le freccette, la selezione ripartiva dal valore
+  // predefinito per il nuovo anno (mese corrente+successivo se è l'anno in
+  // corso, altrimenti tutti i mesi).
+  useEffect(() => {
+    setSelectedMonths(computeDefaultMonths(year));
+  }, [year]);
+
+  function toggleMonth(key: string) {
+    setSelectedMonths((prev) => {
+      const list = prev === "all" ? [] : [...prev];
+      const idx = list.indexOf(key);
+      if (idx >= 0) list.splice(idx, 1);
+      else list.push(key);
+      return list.length ? list : "all";
+    });
+  }
 
   const grouped = useMemo(() => {
-    const visible = rows.filter((r) => !r.occurrence.isMissing);
+    const source = selectedMonths === "all" ? rows : extendedRows;
+    const visible = source.filter((r) => {
+      if (r.occurrence.isMissing) return false;
+      if (selectedMonths === "all") return true;
+      return selectedMonths.includes(r.occurrence.date.slice(0, 7));
+    });
     const groups = new Map<string, Row[]>();
     for (const row of visible) {
       const key = monthLabel(row.occurrence.date);
@@ -60,7 +111,7 @@ export function ScadenzeFiscaliClient({
       else groups.set(key, [row]);
     }
     return Array.from(groups.entries());
-  }, [rows]);
+  }, [rows, extendedRows, selectedMonths]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -86,6 +137,41 @@ export function ScadenzeFiscaliClient({
             {year + 1} →
           </Link>
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <button
+          onClick={() => setSelectedMonths(computeDefaultMonths(year))}
+          className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+        >
+          Mese corrente
+        </button>
+        <button
+          onClick={() => setSelectedMonths("all")}
+          className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+            selectedMonths === "all"
+              ? "border-slate-900 bg-slate-900 text-white"
+              : "border-slate-300 text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          Tutti i mesi
+        </button>
+        <span className="mx-1 h-4 w-px bg-slate-200" />
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+          const key = monthKeyFor(year, m);
+          const active = selectedMonths !== "all" && selectedMonths.includes(key);
+          return (
+            <button
+              key={key}
+              onClick={() => toggleMonth(key)}
+              className={`rounded-md border px-2.5 py-1 text-xs font-medium ${
+                active ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {shortMonthLabel(year, m)}
+            </button>
+          );
+        })}
       </div>
 
       {canManage && pending.length > 0 && (
@@ -116,7 +202,7 @@ export function ScadenzeFiscaliClient({
       <div className="mt-6 space-y-6">
         {grouped.length === 0 && (
           <p className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-            Nessuna scadenza da mostrare per il {year}.
+            Nessuna scadenza da mostrare per il periodo selezionato.
           </p>
         )}
         {grouped.map(([month, monthRows]) => (

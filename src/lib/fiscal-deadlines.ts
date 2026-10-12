@@ -38,7 +38,10 @@ export type DeadlineOccurrence = {
 // applicando la regola configurata e, quando presente, un override/valore
 // manuale per quell'anno specifico.
 export function computeOccurrences(
-  deadline: Pick<FiscalDeadline, "ruleType" | "ruleDay" | "ruleMonth" | "ruleDaysAfterYearEnd" | "augustSuspension">,
+  deadline: Pick<
+    FiscalDeadline,
+    "ruleType" | "ruleDay" | "ruleMonth" | "ruleDaysAfterYearEnd" | "augustSuspension" | "skipWeekendShift"
+  >,
   year: number,
   yearlyValues: Pick<FiscalDeadlineYearlyValue, "year" | "date">[]
 ): DeadlineOccurrence[] {
@@ -55,13 +58,15 @@ export function computeOccurrences(
     return [{ date: override.date, isOverridden: true, isMissing: false }];
   }
 
+  const shift = (iso: string) => (deadline.skipWeekendShift ? iso : nextBusinessDayIso(iso));
+
   if (deadline.ruleType === "MONTHLY_DAY") {
     if (deadline.ruleDay == null) return [];
     const occurrences: DeadlineOccurrence[] = [];
     for (let month = 1; month <= 12; month++) {
       let iso = makeIsoDate(year, month, deadline.ruleDay);
       if (deadline.augustSuspension) iso = applyAugustSuspension(iso);
-      occurrences.push({ date: nextBusinessDayIso(iso), isOverridden: false, isMissing: false });
+      occurrences.push({ date: shift(iso), isOverridden: false, isMissing: false });
     }
     return occurrences;
   }
@@ -70,7 +75,7 @@ export function computeOccurrences(
     if (deadline.ruleDay == null || deadline.ruleMonth == null) return [];
     let iso = makeIsoDate(year, deadline.ruleMonth, deadline.ruleDay);
     if (deadline.augustSuspension) iso = applyAugustSuspension(iso);
-    return [{ date: nextBusinessDayIso(iso), isOverridden: false, isMissing: false }];
+    return [{ date: shift(iso), isOverridden: false, isMissing: false }];
   }
 
   if (deadline.ruleType === "DAYS_AFTER_YEAR_END") {
@@ -80,7 +85,7 @@ export function computeOccurrences(
     const target = new Date(yearEnd.getTime());
     target.setUTCDate(target.getUTCDate() + deadline.ruleDaysAfterYearEnd);
     const iso = target.toISOString().slice(0, 10);
-    return [{ date: nextBusinessDayIso(iso), isOverridden: false, isMissing: false }];
+    return [{ date: shift(iso), isOverridden: false, isMissing: false }];
   }
 
   return [];

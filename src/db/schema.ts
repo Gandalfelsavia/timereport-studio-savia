@@ -112,6 +112,11 @@ export const fiscalDeadlines = pgTable("fiscal_deadlines", {
   // (poi soggetto comunque allo spostamento weekend/festivo standard).
   // Rilevante tipicamente solo per la rata di agosto dell'IVA trimestrale.
   augustSuspension: boolean("august_suspension").notNull().default(false),
+  // Alcuni termini (es. OSS, regime IVA UE e-commerce) sono fissati dalla
+  // normativa UE e NON slittano se cadono di sabato, domenica o festivo,
+  // a differenza della generalità dei termini italiani: true disattiva lo
+  // spostamento al primo giorno lavorativo successivo per questa voce.
+  skipWeekendShift: boolean("skip_weekend_shift").notNull().default(false),
   // true per le voci la cui regola/data non è certa al 100% dalle fonti usate
   // in fase di compilazione (es. dedotta per analogia, o normativa specifica
   // di un singolo anno): mostrate con un avviso distinto nell'interfaccia.

@@ -1,0 +1,1 @@
+ALTER TABLE "fiscal_deadlines" ADD COLUMN "skip_weekend_shift" boolean DEFAULT false NOT NULL;

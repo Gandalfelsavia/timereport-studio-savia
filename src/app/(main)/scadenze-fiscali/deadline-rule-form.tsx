@@ -172,7 +172,7 @@ function DeadlineFields({
         </div>
       )}
 
-      <div className="sm:col-span-3">
+      <div className="sm:col-span-2">
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
@@ -180,10 +180,21 @@ function DeadlineFields({
             defaultChecked={defaultValues?.augustSuspension ?? false}
             className="h-4 w-4 rounded border-slate-300"
           />
-          Soggetta a sospensione feriale (1-20 agosto)
+          Sospensione feriale (1-20 agosto)
         </label>
       </div>
-      <div className="sm:col-span-3">
+      <div className="sm:col-span-2">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            name="skipWeekendShift"
+            defaultChecked={defaultValues?.skipWeekendShift ?? false}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Termine fisso UE (non si sposta, es. OSS)
+        </label>
+      </div>
+      <div className="sm:col-span-2">
         <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
@@ -191,7 +202,7 @@ function DeadlineFields({
             defaultChecked={defaultValues?.needsReview ?? false}
             className="h-4 w-4 rounded border-slate-300"
           />
-          Da verificare ogni anno (regola non del tutto certa)
+          Da verificare ogni anno
         </label>
       </div>
 
