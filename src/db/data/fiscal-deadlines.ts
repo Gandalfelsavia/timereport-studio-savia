@@ -140,6 +140,17 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     needsReview: false,
     notes: "Termine ordinario 28 febbraio. Stessa data: domanda di riduzione tasso medio (modello OT23).",
   },
+  {
+    title: "Imposta di bollo fatture elettroniche — 4° trimestre (ott-dic, anno precedente)",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 2,
+    ruleDay: 28,
+    needsReview: true,
+    notes:
+      "Ultimo giorno di febbraio: 28 nei normali anni, 29 negli anni bisestili (il prossimo è il 2028) — per quegli anni la data impostata qui (28) va corretta manualmente a 29. Vedi anche la nota sulla soglia di versamento differito per il 1° trimestre.",
+  },
 
   // --- Agenzia delle Entrate: marzo-aprile ---
   {
@@ -171,6 +182,17 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     ruleDay: 16,
     needsReview: false,
     notes: "Sanzione 100€ per certificazione in caso di omesso invio, salvo correzione entro 5 giorni.",
+  },
+  {
+    title: "Dichiarazione semestrale consumi accise gas naturale ed energia elettrica — 2° semestre (lug-dic, anno precedente)",
+    category: "DOGANALE",
+    source: "Agenzia Dogane e Monopoli",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 3,
+    ruleDay: 31,
+    needsReview: true,
+    notes:
+      "Dal D.Lgs. 43/2025 la dichiarazione annuale è divisa in due semestrali (vedi anche il 1° semestre, a settembre). Le fonti consultate indicano solo 'entro marzo' per questa seconda dichiarazione, senza un giorno esatto confermato da una circolare ADM specifica: impostato al 31 marzo come ipotesi, da verificare.",
   },
   {
     title: "Presentazione Dichiarazione IVA annuale",
@@ -286,6 +308,27 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     ruleDay: 16,
     needsReview: false,
     notes: "Incluso per completezza pur non essendo tra Agenzia Entrate/INPS/INAIL/ADM/RUNTS: tributo gestito dai Comuni.",
+  },
+  {
+    title: "Dichiarazione IMU enti non commerciali (Modello IMU ENC)",
+    category: "TRIBUTO_LOCALE",
+    source: "Comune (fuori dalle 5 fonti indicate)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 6,
+    ruleDay: 30,
+    needsReview: false,
+    notes: "Dichiarazione (non versamento) riservata agli enti non commerciali: da presentare solo se ci sono state variazioni rilevanti per l'IMU nell'anno precedente.",
+  },
+  {
+    title: "Versamento diritto camerale annuale",
+    category: "TRIBUTO_LOCALE",
+    source: "Camera di Commercio (fuori dalle 5 fonti indicate)",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 6,
+    ruleDay: 30,
+    needsReview: true,
+    notes:
+      "Incluso per completezza pur non essendo tra Agenzia Entrate/INPS/INAIL/ADM/RUNTS. Segue la stessa data (e le stesse eventuali proroghe) del saldo delle imposte sui redditi: se quella scadenza viene prorogata per legge (come nel 2026, con proroga al 20 luglio), va corretta anche questa voce manualmente per l'anno in questione.",
   },
   {
     title: "Deposito bilancio/rendiconto al RUNTS",
@@ -475,6 +518,16 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     notes: "Non rateizzabile, nessuna maggiorazione.",
   },
   {
+    title: "Contributi INPS artigiani/commercianti sul reddito eccedente il minimale — 2° acconto",
+    category: "CONTRIBUTIVO",
+    source: "INPS",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 11,
+    ruleDay: 30,
+    needsReview: false,
+    notes: "Segue la stessa data del 2° acconto imposte sui redditi/IRAP. Vale anche per i contributi di Gestione Separata, che seguono le stesse scadenze (30 giugno, 30 luglio con maggiorazione, 30 novembre).",
+  },
+  {
     title: "Imposta di bollo fatture elettroniche — 3° trimestre",
     category: "FISCALE",
     source: "Agenzia delle Entrate",
@@ -495,6 +548,17 @@ export const fiscalDeadlinesSeed: NewFiscalDeadline[] = [
     ruleDay: 16,
     needsReview: false,
     notes: "Vedi nota sull'acconto di giugno.",
+  },
+  {
+    title: "Acconto IVA annuale",
+    category: "FISCALE",
+    source: "Agenzia delle Entrate",
+    ruleType: "ANNUAL_DATE",
+    ruleMonth: 12,
+    ruleDay: 27,
+    needsReview: false,
+    notes:
+      "Dovuto dai contribuenti IVA mensili e trimestrali (ordinari e speciali), salvo le esclusioni di legge (importo non superiore a 103,29€, primo anno di attività, liquidazione finale a credito, regimi forfettari/agricoltori esonerati, ecc.). Calcolabile con metodo storico (88% di quanto versato per lo stesso periodo dell'anno precedente), previsionale (88% del dovuto stimato) o analitico/effettivo (100% su una liquidazione dedicata al 20 dicembre). Non rientra nella sospensione feriale, che riguarda solo agosto.",
   },
   {
     title: "Contributi INPS artigiani e commercianti sul minimale — 4ª rata (anno successivo)",

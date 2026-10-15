@@ -23,24 +23,24 @@ export default async function Nav() {
   const visibleLinks = links.filter((l) => l.roles.includes(role));
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="bg-[#0D2A6B]">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex flex-wrap items-center gap-1">
-          <span className="mr-3 font-semibold text-slate-900">Timereport</span>
+          <span className="mr-3 font-semibold text-white">Timereport</span>
           {visibleLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-md px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className="rounded-md px-3 py-1.5 text-sm text-white hover:bg-white/10"
             >
               {l.label}
             </Link>
           ))}
         </div>
-        <div className="flex items-center gap-3 text-sm text-slate-500">
+        <div className="flex items-center gap-3 text-sm text-white">
           <span>
             {session.user.name}{" "}
-            <span className="text-xs text-slate-400">({roleLabels[role]})</span>
+            <span className="text-xs text-white/70">({roleLabels[role]})</span>
           </span>
           <form
             action={async () => {
@@ -48,7 +48,7 @@ export default async function Nav() {
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <button className="rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100">
+            <button className="rounded-md border border-white/40 px-2.5 py-1 text-xs text-white hover:bg-white/10">
               Esci
             </button>
           </form>
